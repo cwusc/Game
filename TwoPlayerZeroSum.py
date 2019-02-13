@@ -23,15 +23,28 @@ print(A)
 p = player(K = K, eta = eta)
 q = player(K = K, eta = eta)
 
+Vsum = 0
+ptsum = th.zeros(K,1)
+qtsum = th.zeros(K,1)
+
 for i in range(T):
     pt = p.play()
     qt = q.play()
     q.loss( -th.mm(pt.t(),A).t() )
     p.loss( th.mm(A, qt) )
-    if i% int(T/10) == 0:
-        print( th.mm( pt.t(), th.mm(A, qt) ) )
 
-print(th.mm(pt.t(),A))
-print(th.mm(A, qt).t())
-print(pt.t())
-print(qt.t())
+    V = th.mm( pt.t(), th.mm(A, qt) )
+    
+    Vsum += V
+    ptsum += pt
+    qtsum += qt
+
+Vsum/=T
+qtsum/=T
+ptsum/=T
+
+print("value:", Vsum) #0.08348
+print("loss of q:", th.mm(ptsum.t(),A)) #(0.2183,0.7817)
+print("qt:", qtsum.t() )
+print("loss of p:", th.mm(A, qtsum).t()) #(0.2813,0.7187)
+print("pt:", ptsum.t() )
