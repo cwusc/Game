@@ -18,10 +18,10 @@ class player:
     def policyplay( self, a, eta = -1 ):
         if eta >= 0:
             self.eta = eta
-        onehot = th.zero(self.last)
+        onehot = th.zeros(self.last.size())
         onehot[ a ] = 2 if self.optmstc else 1
         return nn.Softmax(dim = 0)( -self.eta * ( self.L - self.last + onehot ) )
     
     def loss( self, lt ):
         self.L += lt
-        self.last = lt if self.optmstc else 0
+        self.last = lt if self.optmstc else th.zeros(lt.size())
