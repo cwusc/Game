@@ -8,8 +8,7 @@ from player import *
 
 parser = argparse.ArgumentParser(description='Set variant algos')
 
-<<<<<<< HEAD
-T = 100000
+T = 100
 parser.add_argument('--opt', type=int, default=1, dest = 'optimistic')
 parser.add_argument('--n', type=int, default=2, dest='nrand')
 
@@ -17,22 +16,11 @@ args = parser.parse_args()
 
 optimistic = (args.optimistic==1)
 nrand = args.nrand
-=======
-T = 500000
-optimistic = False
->>>>>>> 42396edc5140a75736299252ed54b41a3971e302
 
 th.set_default_tensor_type(th.DoubleTensor)
-#th.manual_seed(3)
 
-<<<<<<< HEAD
-#A = th.tensor([[0.7,0.2],[0.2,0.5]])
-A = th.tensor([[0,9,-2],[-9,0,1],[2,-1,0]])
-A = A.type(th.DoubleTensor)
-=======
->>>>>>> 42396edc5140a75736299252ed54b41a3971e302
+U = th.tensor([[0,9,-2],[-9,0,1],[2,-1,0]], requires_grad=False)
 
-U = th.rand( 4, 4, requires_grad=False )
 U = U.type(th.DoubleTensor)
 
 K = U.size(0)
@@ -91,6 +79,7 @@ for i in range(1,T+1):
 sigma = torch.nn.Softmax(dim=0)
 ar = th.randn(K,1, requires_grad=True)
 optimizer = torch.optim.SGD( [ar], lr = 0.001)
+Pt.requires_grad = False
 
 for i in range(1000):
     optimizer.zero_grad()
