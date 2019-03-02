@@ -1,18 +1,26 @@
+import argparse
 import torch as th
 from torch import nn
 from torch.distributions.categorical import Categorical
 from math import log
 from player import *
 
+parser = argparse.ArgumentParser(description='Set variant algos')
 
-T = 1000000
-optimistic = True
+T = 100000
+parser.add_argument('--opt', type=int, default=1, dest = 'optimistic')
+parser.add_argument('--n', type=int, default=2, dest='nrand')
+
+args = parser.parse_args()
+
+optimistic = (args.optimistic==1)
+nrand = args.nrand
 
 th.set_default_tensor_type(th.DoubleTensor)
 #th.manual_seed(3)
 
 #A = th.tensor([[0.7,0.2],[0.2,0.5]])
-A = th.rand(5,5)
+A = th.tensor([[0,9,-2],[-9,0,1],[2,-1,0]])
 A = A.type(th.DoubleTensor)
 
 K = A.size(0)
@@ -22,7 +30,9 @@ eta = (log(K)/T)**0.25 if optimistic else (log(K)/T)**0.5
 print(A)
 
 p = player(K = K, eta = eta, optimistic = optimistic)
-q = player(K = K, eta = eta, optimistic = False)
+q = player(K = K, eta = eta, optimistic = optimistic)
+
+#q = player(K = K, eta = (log(K)/T)**0.5, optimistic = False)
 
 Vavg = 0
 ptavg = th.zeros(K,1)
