@@ -70,14 +70,19 @@ for tt in range(1,T+1):
 
     if log( tt ) > stint:
         stint += 0.25
-        R, a = solve(QL =QL, e = q.eta, K = K, U = U, o = q.optmstc)
+        R, a = solve( QL = QL, e = q.eta, K = K, U = U, o = q.optmstc)
         print("Round:",tt)
         print( "Policy Regret a*:", mylog( Vavg - min(Vf) ) )
         print( "Policy Regret p*:", mylog( Vavg - R/tt ) )
         print( " External Regret:", mylog( Vavg - min(th.mm(U, qtavg))) )
         print( "a*:", int(th.argmin(th.mm(U, Vf))) )
         print( "p*:", a.t() )
-        print( "pt:", ptavg.t() )
+        print( "pavg:", ptavg.t() )
+        print( "pt:", pt.t() )
+        print( "d(pt,pavg):", th.norm( pt - ptavg ) )
+        print( "d(p*,pavg):", th.norm( a - ptavg ) )
+        print( "q.L:", q.L.t() )
+        print( "p.L:", p.L.t() )
         print( "="*50 ) 
 
     QL = th.cat( (QL, q.L), dim = 1 )
