@@ -7,7 +7,7 @@ from util import *
 from player import *
 from model import *
 
-def run( args ):
+def run( args, G = None ):
     optimistic = (args.optimistic==1)
     nrand = args.nrand
 
@@ -22,8 +22,10 @@ def run( args ):
         [0.7955, 0.3742, 0.6322, 0.1813, 0.0647, 0.2982],
         [0.4699, 0.3273, 0.5085, 0.9462, 0.0165, 0.3451],
         [0.0110, 0.2700, 0.8516, 0.0158, 0.2393, 0.2470]], requires_grad=False)
-    else:
+    elif G is None:
         U = th.rand( nrand, nrand )
+    else:
+        U = G
 
     U = U.type(th.DoubleTensor)
     K = U.size(0)
@@ -36,7 +38,7 @@ def run( args ):
     else:
         (log(K)/T)**0.25 if optimistic else (log(K)/T)**0.5
 
-    print(U)
+    #print(U)
     torch.set_printoptions(precision=3, threshold=200, edgeitems=2, linewidth=120, profile=None)
 
     p = player(K = K, eta = eta, optimistic = optimistic)
@@ -51,7 +53,7 @@ def run( args ):
 
     QL = q.L.clone()
 
-    stint = 5
+    stint = 20
 
 
     for tt in range(1,T+1):
@@ -74,6 +76,9 @@ def run( args ):
             Lk = -th.mm( pk, U ).t()
             qfv[0:K,k:k+1] = q.policyplay(Lk)
             Vf[k] = ( Vf[k]*(tt-1) + th.mm( U, qfv[0:K,k:k+1] )[k] ) / (tt)
+
+        if tt > 100 and th.norm( pt - ptavg ) < 0.005:
+            return tt
 
         if log( tt ) > stint:
             stint += 0.25
@@ -118,6 +123,8 @@ parser.add_argument('--t', type=int, default=100000, dest='T')
 
 args = parser.parse_args()
 
-while True:
-    if run(args):
-        break
+G = th.rand( args.nrand, args.nrand )
+print(G)
+for i in range(1,-9,-1):
+    args.lr = 2.0**i
+    print(run(args, G), 2.0**i)
