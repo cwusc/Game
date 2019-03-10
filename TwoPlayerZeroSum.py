@@ -1,7 +1,6 @@
 import argparse
 import torch as th
 from torch import nn
-from torch.distributions.categorical import Categorical
 from math import log
 from util import *
 from player import *
@@ -53,8 +52,7 @@ def run( args, G = None ):
 
     QL = q.L.clone()
 
-    stint = 20
-
+    stint = 5
 
     for tt in range(1,T+1):
         pt = p.play()
@@ -77,8 +75,6 @@ def run( args, G = None ):
             qfv[0:K,k:k+1] = q.policyplay(Lk)
             Vf[k] = ( Vf[k]*(tt-1) + th.mm( U, qfv[0:K,k:k+1] )[k] ) / (tt)
 
-        if tt > 100 and th.norm( pt - ptavg ) < 0.005:
-            return tt
 
         if log( tt ) > stint:
             stint += 0.25
@@ -91,8 +87,8 @@ def run( args, G = None ):
             print( "  p*:", a.t() )
             print( "pavg:", ptavg.t() )
             print( "  pt:", pt.t() )
-            print( "d(pt,pavg):", th.norm( pt - ptavg ) )
-            print( "d(p*,pavg):", th.norm( a - ptavg ) )
+            print( "d(pt,pavg):", th.norm( pt-ptavg ) )
+            print( "d(p*,pavg):", th.norm( a-ptavg ) )
             print( "q.L:", q.L.t() )
             print( "p.L:", p.L.t() )
             print( "="*50 ) 
@@ -112,6 +108,12 @@ def run( args, G = None ):
     print("pt:", ptavg.t() )
     return True
 
+def LRtuning(args):
+    G = th.rand( args.nrand, args.nrand )
+    print(G)
+    for i in range(1,-9,-1):
+        args.lr = 2.0**i
+        print(run(args, G), 2.0**i)
 
 
 parser = argparse.ArgumentParser(description='Set variant algos')
@@ -123,8 +125,5 @@ parser.add_argument('--t', type=int, default=100000, dest='T')
 
 args = parser.parse_args()
 
-G = th.rand( args.nrand, args.nrand )
-print(G)
-for i in range(1,-9,-1):
-    args.lr = 2.0**i
-    print(run(args, G), 2.0**i)
+run(args)
+

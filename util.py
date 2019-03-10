@@ -1,5 +1,14 @@
 from math import log
 
+def kld(p, q):
+    kl = 0.0
+    for pi,qi in zip(p,q):
+        if pi == 0:
+            continue
+        kl += pi * log( pi/qi )
+    return float(kl)
+
+
 def mylog(x):
     if x < 0:
         return "neg "+str(log(-x))[:5]
