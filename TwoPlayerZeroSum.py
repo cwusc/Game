@@ -38,12 +38,11 @@ def run( args, G = None ):
     else:
         (log(K)/T)**0.25 if optimistic else (log(K)/T)**0.5
 
-    #print(U)
+    print(U)
     torch.set_printoptions(precision=3, threshold=200, edgeitems=2, linewidth=120, profile=None)
 
     p = player(K = K, eta = eta, optimistic = optimistic)
     q = player(K = K, eta = eta, optimistic = optimistic)
-#q = player(K = K, eta = (log(K)/T)**0.5, optimistic = False)
 
     Vavg = 0
     ptavg = th.zeros(K,1)
@@ -53,8 +52,7 @@ def run( args, G = None ):
 
     QL = q.L.clone()
 
-    stint = 20
-
+    stint = 5
 
     for tt in range(1,T+1):
         pt = p.play()
@@ -76,9 +74,6 @@ def run( args, G = None ):
             Lk = -th.mm( pk, U ).t()
             qfv[0:K,k:k+1] = q.policyplay(Lk)
             Vf[k] = ( Vf[k]*(tt-1) + th.mm( U, qfv[0:K,k:k+1] )[k] ) / (tt)
-
-        if tt > 100 and th.norm( pt - ptavg ) < 0.005:
-            return tt
 
         if log( tt ) > stint:
             stint += 0.25
@@ -112,7 +107,12 @@ def run( args, G = None ):
     print("pt:", ptavg.t() )
     return True
 
-
+def LRtuning(args):
+    G = th.rand( args.nrand, args.nrand )
+    print(G)
+    for i in range(1,-9,-1):
+        args.lr = 2.0**i
+        print(run(args, G), 2.0**i)
 
 parser = argparse.ArgumentParser(description='Set variant algos')
 
@@ -123,8 +123,4 @@ parser.add_argument('--t', type=int, default=100000, dest='T')
 
 args = parser.parse_args()
 
-G = th.rand( args.nrand, args.nrand )
-print(G)
-for i in range(1,-9,-1):
-    args.lr = 2.0**i
-    print(run(args, G), 2.0**i)
+run(args)
