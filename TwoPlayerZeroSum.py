@@ -1,7 +1,6 @@
 import argparse
 import torch as th
 from torch import nn
-from torch.distributions.categorical import Categorical
 from math import log
 from util import *
 from player import *
@@ -86,8 +85,8 @@ def run( args, G = None ):
             print( "  p*:", a.t() )
             print( "pavg:", ptavg.t() )
             print( "  pt:", pt.t() )
-            print( "d(pt,pavg):", th.norm( pt - ptavg ) )
-            print( "d(p*,pavg):", th.norm( a - ptavg ) )
+            print( "d(pt,pavg):", kld( pt, ptavg ) )
+            print( "d(p*,pavg):", kld( a, ptavg ) )
             print( "q.L:", q.L.t() )
             print( "p.L:", p.L.t() )
             print( "="*50 ) 
