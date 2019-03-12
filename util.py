@@ -1,4 +1,5 @@
 from math import log
+import torch as th
 
 def kld(p, q):
     kl = 0.0
@@ -8,6 +9,8 @@ def kld(p, q):
         kl += pi * log( pi/qi )
     return float(kl)
 
+def l2d(p, q):
+    return float(th.norm(p-q))
 
 def mylog(x):
     if x < 0:

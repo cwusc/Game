@@ -47,11 +47,12 @@ def run( args, G = None ):
     ptavg = th.zeros(K,1)
     qtavg = th.zeros(K,1)
     Vf = th.zeros(K,1)
+    Vf2 = th.zeros(K,1)
     qfv = th.zeros(K,K)
 
     QL = q.L.clone()
 
-    stint = 5
+    stint = 20
 
     for tt in range(1,T+1):
         pt = p.play()
@@ -73,6 +74,11 @@ def run( args, G = None ):
             Lk = -th.mm( pk, U ).t()
             qfv[0:K,k:k+1] = q.policyplay(Lk)
             Vf[k] = ( Vf[k]*(tt-1) + th.mm( U, qfv[0:K,k:k+1] )[k] ) / (tt)
+            Vf2[k] = th.mm( U, qfv[0:K,k:k+1] )[k]
+        
+        if tt % 500 == 0:
+            R, a = solve( QL = QL, e = q.eta, K = K, U = U, o = q.optmstc)
+            print( R, float( -min(th.mm(U, qtavg) ) + min(Vf2))  )
 
         if log( tt ) > stint:
             stint += 0.25
