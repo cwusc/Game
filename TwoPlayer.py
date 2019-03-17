@@ -1,14 +1,11 @@
 import argparse
-import torch as th
 from util import *
 from player import *
 from model import *
 
-def run( args, G = None, Gp = None, Gq = None ):
+def run( args, G = None, Gp = None, Gq = None, mix = False):
     optimistic = (args.optimistic==1)
-    zerosum = (args.ZeroSum == 1)
     nrand = args.nrand
-
     th.set_default_tensor_type(th.DoubleTensor)
 
     if nrand <= 0:
@@ -16,13 +13,16 @@ def run( args, G = None, Gp = None, Gq = None ):
         #C = th.tensor([[0.6927, 0.0188],[0.3149, 0.7550]], requires_grad=False)
         Cp = th.tensor([[0.5,0.5],[0.51,0]], requires_grad=False) #Stop & Go
         Cq = th.tensor([[0.5,0.51],[0.5,0]], requires_grad=False) #Stop & Go
-    elif G is None:
+    elif G is not None:
+        Cp = G
+    elif Gp is not None:
+        Cp,Cq = Gp,Gq
+    else:
         Cp = th.rand( nrand, nrand )
         Cq = th.rand( nrand, nrand )
-    elif zerosum:
-        Cp = G
-    else:
-        Cp,Cq = Gp,Gq
+
+    if args.ZeroSum == 1:
+        Cq = -Cp.t()
 
     K = Cp.size(0)
     T = args.T
@@ -32,17 +32,12 @@ def run( args, G = None, Gp = None, Gq = None ):
     else:
         (log(K)/T)**0.25 if optimistic else (log(K)/T)**0.5
 
-    torch.set_printoptions(precision=3, threshold=200, edgeitems=2, linewidth=120, profile=None)
     print("="*50)
-    if zerosum:
-        Cq = -Cp.t()
-        print(Cp)
-    else:
-        print("p Loss:\n", Cp)
-        print("q Loss:\n", Cq)
+    print("p Loss:\n", Cp)
+    print("q Loss:\n", Cq)
     print("="*50)
 
-    torch.set_printoptions(precision=3, threshold=200, edgeitems=2, linewidth=180, profile=None)
+    #torch.set_printoptions(precision=3, threshold=200, edgeitems=2, linewidth=180, profile=None)
 
     p = player(K = K, eta = eta, optimistic = optimistic)
     q = player(K = K, eta = eta, optimistic = optimistic)
@@ -51,11 +46,7 @@ def run( args, G = None, Gp = None, Gq = None ):
     ptavg = th.zeros(K,1)
     qtavg = th.zeros(K,1)
     Vf = th.zeros(K,1)
-    Vf2 = th.zeros(K,1)
-    qfv = th.zeros(K,K)
-
     QL = q.L.clone()
-
     stint = 5
 
     for tt in range(1,T+1):
@@ -72,12 +63,12 @@ def run( args, G = None, Gp = None, Gq = None ):
 
         if tt == T:
             break
-
         for k in range(K):
             pk = th.tensor( [[ float(j==k) for j in range(K)]] ).t()
             Vf[k] += th.mm( Cp, q.policyplay( th.mm(Cq, pk) ) )[k]
-
         if log( tt ) > stint:
+            if mix and min(ptavg) < 0.01:
+                return False
             stint += 0.2
             Pa = min(Vf)/tt
             Pp, a = solve(QL =QL, e = q.eta, K = K, Cq = Cq, Cp = Cp, o = q.optmstc, l = Pa )
@@ -85,29 +76,16 @@ def run( args, G = None, Gp = None, Gq = None ):
             print( "Policy Regret a*:", mylog( Vavg - Pa ) )
             print( "Policy Regret p*:", mylog( Vavg - Pp ) )
             print( " External Regret:", mylog( Vavg - min(th.mm(Cp, qtavg))) )
-            print( "  a*:", int(th.argmin(Vf)) )
             print( "  p*:", a.t() )
             print( "pavg:", ptavg.t() )
             print( "  pt:", pt.t() )
+            print( "  qt:", qt.t() )
             print( "d(pt,pavg):", kld( pt, ptavg ) )
             print( "d(p*,pavg):", kld( a, ptavg ) )
-            print( "q.L:", q.L.t() )
-            print( "p.L:", p.L.t() )
+            print( "QlossAvg:", th.mm( Cq, ptavg).t() )
+            print( "LlossAvg:", th.mm( Cp, qtavg).t() )
             print( "="*50 ) 
-
         QL = th.cat( ( QL, q.L.clone() ), dim = 1 )
-
-    R, a = solve(QL =QL, e = q.eta, K = K, U = U, o = q.optmstc)
-    print( "final p* V:", R/(tt) )
-    print( "final p*:", a.t() )
-    print( "final Vf:", Vf.t() )
-    print( "final a*:", th.argmin(Vf) )
-
-    print("value:", Vavg) 
-    print("loss of q:", th.mm(ptavg.t(),U)) 
-    print("qt:", qtavg.t() )
-    print("loss of p:", th.mm(U, qtavg).t()) 
-    print("pt:", ptavg.t() )
     return True
 
 def LRtuning(args):
@@ -117,14 +95,16 @@ def LRtuning(args):
         args.lr = 2.0**i
         print(run(args, G=G), 2.0**i)
 
-parser = argparse.ArgumentParser(description='Set variant algos')
+def MixedFinding(args):
+    while not run(args, mix = True):
+        continue
 
+parser = argparse.ArgumentParser(description='Set variant algos')
 parser.add_argument('--opt', type=int, default=1, dest = 'optimistic')
 parser.add_argument('--n', type=int, default=0, dest='nrand')
 parser.add_argument('--lr', type=float, default=0.5, dest='lr')
 parser.add_argument('--t', type=int, default=100000, dest='T')
 parser.add_argument('--z', type=int, default=1, dest='ZeroSum')
-
 args = parser.parse_args()
 
-run(args)
+MixedFinding(args)
