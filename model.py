@@ -5,38 +5,41 @@ import torch.optim
 th.set_default_tensor_type(th.DoubleTensor)
 
 class Model(nn.Module):
-    def __init__( self, eta, K, U, optimistic = False, det = True):
+    def __init__( self, eta, K, Cp, Cq, optimistic = False, det = False):
         super(Model, self).__init__()
         self.eta = eta
         self.sigma = nn.Softmax(dim=0)
         if det:
-            self.ar = th.zeros(K, 1, requires_grad=True)
+            self.ar = th.ones(K, 1, requires_grad=True)
         else:
             self.ar = th.randn(K, 1, requires_grad=True)
         self.optmstc = optimistic
-        self.U = U
+        self.Cp = Cp
+        self.Cq = Cq
 
-    def forward(self, x):
+    def forward(self, x, aa = None):
+        a = self.sigma(self.ar) if aa is None else aa
+        La = th.mm( self.Cq, a)
         if self.optmstc:
-            a = self.sigma(self.ar) * 2 
-        else:
-            a = self.sigma(self.ar) * 1
-        La = -th.mm( a.t(), self.U ).t()
-        Pta = self.sigma( -self.eta * ( x + La ) ) 
-        Qt = th.mm( self.U, Pta )
-        return th.sum( th.mm( a.t(), Qt ) )
+            La = La * 2
+        Qta = self.sigma( -self.eta * ( x + La ) ) 
+        DeviateLossVec = th.mm( self.Cp, Qta )
+        return th.mean( th.mm( a.t(), DeviateLossVec ) )
 
 
-def solve(QL, e, K, U, o):
-    md = Model(eta = e, K = K, U = U, optimistic = 0)
+def solve(QL, e, K, Cq, Cp, o, l):
+    md = Model(eta = e, K = K, Cq = Cq, Cp = Cp, optimistic = o)
     optimizer = torch.optim.RMSprop( [md.ar] )
     QL.requires_grad = False
-
-    for qq in range(1000):
+    eps = 1e-6
+    it = 1
+    while it < 1000 or P > l + eps:
         optimizer.zero_grad()
-        R = md( QL )
-        R.backward()
+        P = md( QL )
+        P.backward()
         optimizer.step()
-    Rd = R.detach()
-    ad = md.sigma( md.ar ).detach()
-    return Rd, ad
+        it += 1
+    print("Solver iterations:",it)
+    Pd = P.detach()
+    od = md.sigma( md.ar ).detach()
+    return Pd, od
