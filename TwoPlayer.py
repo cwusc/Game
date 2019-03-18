@@ -10,9 +10,16 @@ def run( args, G = None, Gp = None, Gq = None, mix = False):
 
     if nrand <= 0:
         #Cp = th.tensor([[0,1,-1],[-1,0,1],[1,-1,0]], requires_grad=False)
-        #C = th.tensor([[0.6927, 0.0188],[0.3149, 0.7550]], requires_grad=False)
-        Cp = th.tensor([[0.5,0.5],[0.51,0]], requires_grad=False) #Stop & Go
-        Cq = th.tensor([[0.5,0.51],[0.5,0]], requires_grad=False) #Stop & Go
+        #Cp = th.tensor([[0.5,0.5],[0.51,0]], requires_grad=False) #Stop & Go
+        #Cq = th.tensor([[0.5,0.51],[0.5,0]], requires_grad=False) #Stop & Go
+        Cp = th.tensor([[0.2890, 0.8766, 0.0575, 0.0175],
+        [0.3251, 0.3361, 0.9296, 0.9929],
+        [0.5452, 0.6816, 0.1174, 0.5132],
+        [0.8249, 0.5313, 0.7316, 0.4086]])
+        Cq = th.tensor([[0.2727, 0.6316, 0.6162, 0.9483],
+        [0.0774, 0.3677, 0.9125, 0.7383],
+        [0.7697, 0.1824, 0.7393, 0.0304],
+        [0.3663, 0.0609, 0.6463, 0.7843]])
     elif G is not None:
         Cp = G
     elif Gp is not None:
@@ -107,4 +114,4 @@ parser.add_argument('--t', type=int, default=100000, dest='T')
 parser.add_argument('--z', type=int, default=1, dest='ZeroSum')
 args = parser.parse_args()
 
-MixedFinding(args)
+run(args)
