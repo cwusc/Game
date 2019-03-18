@@ -33,7 +33,7 @@ def solve(QL, e, K, Cq, Cp, o, l):
     QL.requires_grad = False
     eps = 1e-6
     it = 1
-    while it < 2000 or P > l + eps:
+    while it < 10000 or P > l + eps:
         optimizer.zero_grad()
         P = md( QL )
         P.backward()
