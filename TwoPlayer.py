@@ -72,32 +72,36 @@ def run( args, G = None, Gp = None, Gq = None, mix = False):
 
         if tt == T:
             break
-        for k in range(K):
-            pk = th.tensor( [[ float(j==k) for j in range(K)]] ).t()
-            Vf[k] += th.mm( Cp, q.policyplay( th.mm(Cq, pk) ) )[k]
-        if log( tt ) > stint:
+        if args.policy == 1:
+            for k in range(K):
+                pk = th.tensor( [[ float(j==k) for j in range(K)]] ).t()
+                Vf[k] += th.mm( Cp, q.policyplay( th.mm(Cq, pk) ) )[k]
+        if tt > 1000*stint:
             if mix and min(ptavg) < 0.01:
                 return False
-            stint += 0.2
-            Pa = min(Vf)/tt
-            Pp, a = solve(QL =QL, e = q.eta, K = K, Cq = Cq, Cp = Cp, 
-                            o = q.optmstc, l = Pa, itermin = args.itermin )
+            stint += 1
             print("Round:",tt)
-            print( "Policy Regret a*:", mylog( Vavg - Pa ) )
-            print( "Policy Regret p*:", mylog( Vavg - Pp ) )
-            print( " External Regret:", mylog( Vavg - min(th.mm(Cp, qtavg))) )
-            print( "  p*:", a.t() )
+            Pa = min(Vf)/tt
+            if args.policy == 1:
+                Pp, a = solve(QL =QL, e = q.eta, K = K, Cq = Cq, Cp = Cp, 
+                               o = q.optmstc, l = Pa, itermin = args.itermin )
+                print( "Policy Regret a*:", mylog( Vavg - Pa ) )
+                print( "Policy Regret p*:", mylog( Vavg - Pp ) )
+                print( " External Regret:", mylog( Vavg - min(th.mm(Cp, qtavg))) )
+                print( "  p*:", a.t() )
+                print( "d(pt,pavg):", kld( pt, ptavg ) )
+                print( "d(p*,pavg):", kld( a, ptavg ) )
             print( "pavg:", ptavg.t() )
+            print( "qavg:", qtavg.t() )
             print( "  pt:", pt.t() )
             print( "  qt:", qt.t() )
-            print( "qavg:", qtavg.t() )
-            print( "d(pt,pavg):", kld( pt, ptavg ) )
-            print( "d(p*,pavg):", kld( a, ptavg ) )
             print( "LlossAvg:", th.mm( Cp, qtavg).t() )
             print( "QlossAvg:", th.mm( Cq, ptavg).t() )
             print( "CCE:\n", CCE ) 
             print( "="*50 ) 
-        QL = th.cat( ( QL, q.L.clone() ), dim = 1 )
+
+        if args.policy == 1:
+            QL = th.cat( ( QL, q.L.clone() ), dim = 1 )
     return True
 
 def LRtuning(args):
@@ -118,6 +122,7 @@ parser.add_argument('--lr', type=float, default=0.5, dest='lr')
 parser.add_argument('--t', type=int, default=100000, dest='T')
 parser.add_argument('--z', type=int, default=1, dest='ZeroSum')
 parser.add_argument('--iter', type=int, default=1000, dest='itermin')
+parser.add_argument('--p', type=int, default=0, dest='policy')
 args = parser.parse_args()
 
 run(args)
