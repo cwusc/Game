@@ -27,19 +27,19 @@ class Model(nn.Module):
         return th.mean( th.mm( a.t(), DeviateLossVec ) )
 
 
-def solve(QL, e, K, Cq, Cp, o, l):
+def solve(QL, e, K, Cq, Cp, o, l, itermin=1000):
     md = Model(eta = e, K = K, Cq = Cq, Cp = Cp, optimistic = o)
     optimizer = torch.optim.RMSprop( [md.ar] )
     QL.requires_grad = False
     eps = 1e-6
     it = 1
-    while it < 10000 or P > l + eps:
+    while it < itermin or P > l + eps:
         optimizer.zero_grad()
         P = md( QL )
         P.backward()
         optimizer.step()
         it += 1
-        if it > 100000:
+        if it > 10*itermin:
             break
     print("Solver iterations:",it)
     Pd = P.detach()

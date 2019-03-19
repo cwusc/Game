@@ -12,10 +12,14 @@ def run( args, G = None, Gp = None, Gq = None, mix = False):
         #Cp = th.tensor([[0,1,-1],[-1,0,1],[1,-1,0]], requires_grad=False)
         #Cp = th.tensor([[0.5,0.5],[0.51,0]], requires_grad=False) #Stop & Go
         #Cq = th.tensor([[0.5,0.51],[0.5,0]], requires_grad=False) #Stop & Go
-        Cp = th.tensor([[0.2847, 0.9854],
-        [0.5422, 0.1016]])
-        Cq = th.tensor([[0.9630, 0.4686],
-        [0.0727, 0.6279]])
+        #Cp = th.tensor([[0.2847, 0.9854],[0.5422, 0.1016]])
+        #Cq = th.tensor([[0.9630, 0.4686],[0.0727, 0.6279]])
+        Cp = th.tensor([[0.8863, 0.1772, 0.9386],
+        [0.2670, 0.9956, 0.9544],
+        [0.6265, 0.5980, 0.1228]])
+        Cq = th.tensor([[0.4271, 0.8174, 0.5112],
+        [0.7327, 0.7630, 0.4404],
+        [0.4437, 0.3071, 0.5904]])
     elif G is not None:
         Cp = G
     elif Gp is not None:
@@ -40,7 +44,7 @@ def run( args, G = None, Gp = None, Gq = None, mix = False):
     print("q Loss:\n", Cq)
     print("="*50)
 
-    #torch.set_printoptions(precision=3, threshold=200, edgeitems=2, linewidth=180, profile=None)
+    torch.set_printoptions(precision=4, threshold=200, edgeitems=2, linewidth=180, profile=None)
 
     p = player(K = K, eta = eta, optimistic = optimistic)
     q = player(K = K, eta = eta, optimistic = optimistic)
@@ -50,6 +54,7 @@ def run( args, G = None, Gp = None, Gq = None, mix = False):
     qtavg = th.zeros(K,1)
     Vf = th.zeros(K,1)
     QL = q.L.clone()
+    CCE = th.zeros(K,K)
     stint = 5
 
     for tt in range(1,T+1):
@@ -63,6 +68,7 @@ def run( args, G = None, Gp = None, Gq = None, mix = False):
         Vavg = (Vavg/tt)*(tt-1) + V/tt
         ptavg = (ptavg/tt)*(tt-1) + pt/tt
         qtavg = (qtavg/tt)*(tt-1) + qt/tt
+        CCE = (CCE/tt)*(tt-1) + th.mm(pt,qt.t())/tt
 
         if tt == T:
             break
@@ -74,7 +80,8 @@ def run( args, G = None, Gp = None, Gq = None, mix = False):
                 return False
             stint += 0.2
             Pa = min(Vf)/tt
-            Pp, a = solve(QL =QL, e = q.eta, K = K, Cq = Cq, Cp = Cp, o = q.optmstc, l = Pa )
+            Pp, a = solve(QL =QL, e = q.eta, K = K, Cq = Cq, Cp = Cp, 
+                            o = q.optmstc, l = Pa, itermin = args.itermin )
             print("Round:",tt)
             print( "Policy Regret a*:", mylog( Vavg - Pa ) )
             print( "Policy Regret p*:", mylog( Vavg - Pp ) )
@@ -83,10 +90,12 @@ def run( args, G = None, Gp = None, Gq = None, mix = False):
             print( "pavg:", ptavg.t() )
             print( "  pt:", pt.t() )
             print( "  qt:", qt.t() )
+            print( "qavg:", qtavg.t() )
             print( "d(pt,pavg):", kld( pt, ptavg ) )
             print( "d(p*,pavg):", kld( a, ptavg ) )
-            print( "QlossAvg:", th.mm( Cq, ptavg).t() )
             print( "LlossAvg:", th.mm( Cp, qtavg).t() )
+            print( "QlossAvg:", th.mm( Cq, ptavg).t() )
+            print( "CCE:\n", CCE ) 
             print( "="*50 ) 
         QL = th.cat( ( QL, q.L.clone() ), dim = 1 )
     return True
@@ -108,6 +117,7 @@ parser.add_argument('--n', type=int, default=0, dest='nrand')
 parser.add_argument('--lr', type=float, default=0.5, dest='lr')
 parser.add_argument('--t', type=int, default=100000, dest='T')
 parser.add_argument('--z', type=int, default=1, dest='ZeroSum')
+parser.add_argument('--iter', type=int, default=1000, dest='itermin')
 args = parser.parse_args()
 
 run(args)
