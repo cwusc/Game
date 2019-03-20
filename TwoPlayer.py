@@ -12,14 +12,14 @@ def run( args, G = None, Gp = None, Gq = None, mix = False):
         #Cp = th.tensor([[0,1,-1],[-1,0,1],[1,-1,0]], requires_grad=False)
         #Cp = th.tensor([[0.5,0.5],[0.51,0]], requires_grad=False) #Stop & Go
         #Cq = th.tensor([[0.5,0.51],[0.5,0]], requires_grad=False) #Stop & Go
-        #Cp = th.tensor([[0.2847, 0.9854],[0.5422, 0.1016]])
-        #Cq = th.tensor([[0.9630, 0.4686],[0.0727, 0.6279]])
-        Cp = th.tensor([[0.8863, 0.1772, 0.9386],
-        [0.2670, 0.9956, 0.9544],
-        [0.6265, 0.5980, 0.1228]])
-        Cq = th.tensor([[0.4271, 0.8174, 0.5112],
-        [0.7327, 0.7630, 0.4404],
-        [0.4437, 0.3071, 0.5904]])
+        Cp = th.tensor([[0.2847, 0.9854],[0.5422, 0.1016]])
+        Cq = th.tensor([[0.9630, 0.4686],[0.0727, 0.6279]])
+        #Cp = th.tensor([[0.8863, 0.1772, 0.9386],
+        #[0.2670, 0.9956, 0.9544],
+        #[0.6265, 0.5980, 0.1228]])
+        #Cq = th.tensor([[0.4271, 0.8174, 0.5112],
+        #[0.7327, 0.7630, 0.4404],
+        #[0.4437, 0.3071, 0.5904]])
     elif G is not None:
         Cp = G
     elif Gp is not None:
@@ -76,7 +76,7 @@ def run( args, G = None, Gp = None, Gq = None, mix = False):
             for k in range(K):
                 pk = th.tensor( [[ float(j==k) for j in range(K)]] ).t()
                 Vf[k] += th.mm( Cp, q.policyplay( th.mm(Cq, pk) ) )[k]
-        if tt > 1000*stint:
+        if tt > 1000 * stint:
             if mix and min(ptavg) < 0.01:
                 return False
             stint += 1
