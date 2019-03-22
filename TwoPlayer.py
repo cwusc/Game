@@ -1,10 +1,11 @@
 import argparse
-from util import *
 from player import *
 from model import *
 
 def run( args, G = None, Gp = None, Gq = None, mix = False):
     optimistic = (args.optimistic==1)
+    bandits = (args.bandits == 1)
+    policy = (args.policy == 1)
     nrand = args.nrand
     th.set_default_tensor_type(th.DoubleTensor)
 
@@ -46,8 +47,8 @@ def run( args, G = None, Gp = None, Gq = None, mix = False):
 
     torch.set_printoptions(precision=4, threshold=200, edgeitems=2, linewidth=180, profile=None)
 
-    p = player(K = K, eta = eta, optimistic = optimistic)
-    q = player(K = K, eta = eta, optimistic = optimistic)
+    p = player(K = K, eta = eta, optimistic = optimistic, bandits = bandits )
+    q = player(K = K, eta = eta, optimistic = optimistic, bandits = bandits )
 
     Vavg = 0
     ptavg = th.zeros(K,1)
@@ -55,7 +56,7 @@ def run( args, G = None, Gp = None, Gq = None, mix = False):
     Vf = th.zeros(K,1)
     QL = q.L.clone()
     CCE = th.zeros(K,K)
-    stint = 5
+    stint = 2
 
     for tt in range(1,T+1):
         pt = p.play()
@@ -72,17 +73,17 @@ def run( args, G = None, Gp = None, Gq = None, mix = False):
 
         if tt == T:
             break
-        if args.policy == 1:
+        if policy == 1:
             for k in range(K):
-                pk = th.tensor( [[ float(j==k) for j in range(K)]] ).t()
+                pk = onehot(k,K)
                 Vf[k] += th.mm( Cp, q.policyplay( th.mm(Cq, pk) ) )[k]
-        if tt > 1000 * stint:
+        if tt > 10000 * stint:
             if mix and min(ptavg) < 0.01:
                 return False
             stint += 1
             print("Round:",tt)
             Pa = min(Vf)/tt
-            if args.policy == 1:
+            if policy == 1:
                 Pp, a = solve(QL =QL, e = q.eta, K = K, Cq = Cq, Cp = Cp, 
                                o = q.optmstc, l = Pa, itermin = args.itermin )
                 print( "Policy Regret a*:", mylog( Vavg - Pa ) )
@@ -93,14 +94,16 @@ def run( args, G = None, Gp = None, Gq = None, mix = False):
                 print( "d(p*,pavg):", kld( a, ptavg ) )
             print( "pavg:", ptavg.t() )
             print( "qavg:", qtavg.t() )
-            print( "  pt:", pt.t() )
-            print( "  qt:", qt.t() )
+            print( "  pt:", p.pt.t() )
+            print( "  qt:", q.pt.t() )
             print( "LlossAvg:", th.mm( Cp, qtavg).t() )
             print( "QlossAvg:", th.mm( Cq, ptavg).t() )
+            print( "p.L:", p.L.t() )
+            print( "q.L:", q.L.t() )
             print( "CCE:\n", CCE ) 
             print( "="*50 ) 
 
-        if args.policy == 1:
+        if policy:
             QL = th.cat( ( QL, q.L.clone() ), dim = 1 )
     return True
 
@@ -123,6 +126,7 @@ parser.add_argument('--t', type=int, default=100000, dest='T')
 parser.add_argument('--z', type=int, default=1, dest='ZeroSum')
 parser.add_argument('--iter', type=int, default=1000, dest='itermin')
 parser.add_argument('--p', type=int, default=0, dest='policy')
+parser.add_argument('--b', type=int, default=0, dest='bandits')
 args = parser.parse_args()
 
 run(args)
