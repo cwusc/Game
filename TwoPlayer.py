@@ -10,11 +10,11 @@ def run( args, G = None, Gp = None, Gq = None, mix = False):
     th.set_default_tensor_type(th.DoubleTensor)
 
     if nrand <= 0:
-        #Cp = th.tensor([[0,1,-1],[-1,0,1],[1,-1,0]], requires_grad=False)
+        Cp = th.tensor([[0.0,1,-1],[-1,0,1],[1,-1,0]], requires_grad=False)
         #Cp = th.tensor([[0.5,0.5],[0.51,0]], requires_grad=False) #Stop & Go
         #Cq = th.tensor([[0.5,0.51],[0.5,0]], requires_grad=False) #Stop & Go
-        Cp = th.tensor([[0.2847, 0.9854],[0.5422, 0.1016]])
-        Cq = th.tensor([[0.9630, 0.4686],[0.0727, 0.6279]])
+        #Cp = th.tensor([[0.2847, 0.9854],[0.5422, 0.1016]])
+        #Cq = th.tensor([[0.9630, 0.4686],[0.0727, 0.6279]])
         #Cp = th.tensor([[0.8863, 0.1772, 0.9386],
         #[0.2670, 0.9956, 0.9544],
         #[0.6265, 0.5980, 0.1228]])
