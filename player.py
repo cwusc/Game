@@ -37,8 +37,9 @@ class player:
             L = self.L - self.last + La
         return nn.Softmax(dim = 0)( -self.eta * ( L ) )
     
-    def loss( self, lt ):
+    def loss( self, lossvec ):
         if self.bandits:
-            lt = lt / self.pt[ self.a ]
-        self.L += lt
-        self.last = lt 
+            lte = lossvec[ self.a ] / self.pt[ self.a ]
+            lossvec = lte * onehot( self.a, self.K )
+        self.L += lossvec
+        self.last = lossvec

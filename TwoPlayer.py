@@ -11,7 +11,7 @@ def run( args, G = None, Gp = None, Gq = None, mix = False):
 
     if nrand <= 0:
         # Paper Toss
-        #Cp = th.tensor([[0.0,1,-1],[-1,0,1],[1,-1,0]], requires_grad=False)
+        Cp = th.tensor([[0.0,1,-1],[-1,0,1],[1,-1,0]], requires_grad=False)
         # Stop and Go
         #Cp = th.tensor([[0.5,0.5],[0.51,0]], requires_grad=False) #Stop & Go
         #Cq = th.tensor([[0.5,0.51],[0.5,0]], requires_grad=False) #Stop & Go
@@ -30,6 +30,8 @@ def run( args, G = None, Gp = None, Gq = None, mix = False):
     elif Gp is not None:
         Cp,Cq = Gp,Gq
     else:
+        if args.seed > 0:
+            th.manual_seed( args.seed )
         Cp = th.rand( nrand, nrand )
         Cq = th.rand( nrand, nrand )
 
@@ -100,11 +102,14 @@ def run( args, G = None, Gp = None, Gq = None, mix = False):
             print( "qavg:", qtavg.t() )
             print( "  pt:", p.pt.t() )
             print( "  qt:", q.pt.t() )
+            print( "pt last:", p.last.t() )
+            print( "qt last:", q.last.t() )
             print( "LlossAvg:", th.mm( Cp, qtavg).t() )
             print( "QlossAvg:", th.mm( Cq, ptavg).t() )
             print( "p.L:", p.L.t() )
             print( "q.L:", q.L.t() )
-            print( "CCE:\n", CCE ) 
+            if args.ZeroSum != 1:
+                print( "CCE:\n", CCE ) 
             print( "="*50 ) 
 
         if policy:
@@ -131,6 +136,7 @@ parser.add_argument('--z', type=int, default=1, dest='ZeroSum')
 parser.add_argument('--iter', type=int, default=1000, dest='itermin')
 parser.add_argument('--p', type=int, default=0, dest='policy')
 parser.add_argument('--b', type=int, default=0, dest='bandits')
+parser.add_argument('--seed', type=int, default=-1, dest='seed')
 args = parser.parse_args()
 
 run(args)
