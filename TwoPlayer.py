@@ -36,7 +36,7 @@ def run( args, G = None, Gp = None, Gq = None, mix = False):
         Cq = th.rand( nrand, nrand )
 
     if args.ZeroSum == 1:
-        Cq = -Cp.t()
+        Cq = 1-Cp.t()
 
     K = Cp.size(0)
     T = args.T
