@@ -43,8 +43,10 @@ def run( args, G = None, Gp = None, Gq = None, mix = False):
 
     if args.lr > 0:
         eta = args.lr
-    else:
-        (log(K)/T)**0.25 if optimistic else (log(K)/T)**0.5
+    elif optimistic and bandits:
+        (log(K)/T)**0.25
+    else: 
+        (log(K)/T)**0.5
 
     print("="*50)
     print("p Loss:\n", Cp)
@@ -83,10 +85,10 @@ def run( args, G = None, Gp = None, Gq = None, mix = False):
             for k in range(K):
                 pk = onehot(k,K)
                 Vf[k] += th.mm( Cp, q.policyplay( th.mm(Cq, pk) ) )[k]
-        if tt > 10000 * stint:
+        if log(tt) >  stint:
             if mix and min(ptavg) < 0.01:
                 return False
-            stint += 1
+            stint += 0.25
             print("Round:",tt)
             Pa = min(Vf)/tt
             if policy == 1:
@@ -98,6 +100,8 @@ def run( args, G = None, Gp = None, Gq = None, mix = False):
                 print( "  p*:", a.t() )
                 print( "d(pt,pavg):", kld( pt, ptavg ) )
                 print( "d(p*,pavg):", kld( a, ptavg ) )
+            else:
+                print( "Regret:", mylog( Vavg - min(th.mm(Cp, qtavg))) )
             print( "pavg:", ptavg.t() )
             print( "qavg:", qtavg.t() )
             print( "  pt:", p.pt.t() )
