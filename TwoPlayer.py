@@ -8,7 +8,7 @@ def run( args, G = None, Gp = None, Gq = None, mix = False):
     policy = (args.policy == 1)
     nrand = args.nrand
     th.set_default_tensor_type(th.DoubleTensor)
-
+    reglog = open("reglog.txt", "w+")
     if nrand <= 0:
         # Paper Toss
         Cp = th.tensor([[0.0,1,-1],[-1,0,1],[1,-1,0]], requires_grad=False)
@@ -43,10 +43,10 @@ def run( args, G = None, Gp = None, Gq = None, mix = False):
 
     if args.lr > 0:
         eta = args.lr
-    elif optimistic and bandits:
-        (log(K)/T)**0.25
+    elif optimistic and not bandits:
+        eta = (log(K)/T)**0.25
     else: 
-        (log(K)/T)**0.5
+        eta = (log(K)/T)**0.5
 
     print("="*50)
     print("p Loss:\n", Cp)
@@ -64,11 +64,13 @@ def run( args, G = None, Gp = None, Gq = None, mix = False):
     Vf = th.zeros(K,1)
     QL = q.L.clone()
     CCE = th.zeros(K,K)
-    stint = 2
+    stint = 5
 
     for tt in range(1,T+1):
-        pt = p.play()
-        qt = q.play()
+        if bandits:
+            eta = (log(K)/(K*tt))**0.5
+        pt = p.play(eta)
+        qt = q.play(eta)
 
         q.loss( th.mm(Cq, pt) )
         p.loss( th.mm(Cp, qt) )
@@ -88,20 +90,22 @@ def run( args, G = None, Gp = None, Gq = None, mix = False):
         if log(tt) >  stint:
             if mix and min(ptavg) < 0.01:
                 return False
-            stint += 0.25
+            stint += 0.2
             print("Round:",tt)
             Pa = min(Vf)/tt
+            Rs = min(th.mm(Cp, qtavg))
             if policy == 1:
                 Pp, a = solve(QL =QL, e = q.eta, K = K, Cq = Cq, Cp = Cp, 
                                o = q.optmstc, l = Pa, itermin = args.itermin )
                 print( "Policy Regret a*:", mylog( Vavg - Pa ) )
                 print( "Policy Regret p*:", mylog( Vavg - Pp ) )
-                print( " External Regret:", mylog( Vavg - min(th.mm(Cp, qtavg))) )
+                print( " External Regret:", mylog( Vavg - Rs ) )
                 print( "  p*:", a.t() )
                 print( "d(pt,pavg):", kld( pt, ptavg ) )
                 print( "d(p*,pavg):", kld( a, ptavg ) )
             else:
-                print( "Regret:", mylog( Vavg - min(th.mm(Cp, qtavg))) )
+                print("Regret:", mylog( Vavg - Rs) )
+            reglog.write( str(tt) + " " + str(float(Vavg - Rs)) + "\n")
             print( "pavg:", ptavg.t() )
             print( "qavg:", qtavg.t() )
             print( "  pt:", p.pt.t() )
