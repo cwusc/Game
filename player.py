@@ -6,6 +6,28 @@ from util import *
 
 th.set_default_tensor_type(th.DoubleTensor)
 
+class metaplayer:
+    def __init__( self, eta = 1, K = 1, optimistic = False, bandits = False):
+        self.eta = eta
+        self.bandits = bandits
+        self.K = K
+        self.plyrs = [ player(K = K, eta = eta, optimistic = optimistic, bandits = bandits ) ] * K
+    def play( self, eta = -1 ):
+        for i in range(self.K):
+            pi = self.plyrs[i].play( eta )
+            if i == 0:
+                self.Q = pi 
+            else:
+                self.Q = th.cat( (self.Q, pi), dim = 1 )
+        self.pt = th.ones( self.K, 1 ) / self.K
+        for i in range( 100 ):
+            self.pt = th.mm( self.Q, self.pt )
+        return self.pt
+    def loss( self, lossvec ):
+        for i in range(self.K):
+            self.plyrs[i].loss( self.pt[i] * lossvec )
+
+
 class player:
     def __init__( self, eta = 1, K = 1, optimistic = False, bandits = False):
         self.eta = eta

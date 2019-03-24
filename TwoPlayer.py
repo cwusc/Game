@@ -3,9 +3,8 @@ from player import *
 from model import *
 
 def run( args, G = None, Gp = None, Gq = None, mix = False):
-    optimistic = (args.optimistic==1)
-    bandits = (args.bandits == 1)
-    policy = (args.policy == 1)
+    optimistic = not (args.nopt)
+    ZeroSum = not (args.nonz)
     nrand = args.nrand
     th.set_default_tensor_type(th.DoubleTensor)
     reglog = open("reglog.txt", "w+")
@@ -15,16 +14,6 @@ def run( args, G = None, Gp = None, Gq = None, mix = False):
         # Stop and Go
         #Cp = th.tensor([[0.5,0.5],[0.51,0]], requires_grad=False) #Stop & Go
         #Cq = th.tensor([[0.5,0.51],[0.5,0]], requires_grad=False) #Stop & Go
-        # Policy regret
-        #Cp = th.tensor([[0.2847, 0.9854],[0.5422, 0.1016]])
-        #Cq = th.tensor([[0.9630, 0.4686],[0.0727, 0.6279]])
-        # CCE
-        #Cp = th.tensor([[0.8863, 0.1772, 0.9386],
-        #[0.2670, 0.9956, 0.9544],
-        #[0.6265, 0.5980, 0.1228]])
-        #Cq = th.tensor([[0.4271, 0.8174, 0.5112],
-        #[0.7327, 0.7630, 0.4404],
-        #[0.4437, 0.3071, 0.5904]])
     elif G is not None:
         Cp = G
     elif Gp is not None:
@@ -35,7 +24,7 @@ def run( args, G = None, Gp = None, Gq = None, mix = False):
         Cp = th.rand( nrand, nrand )
         Cq = th.rand( nrand, nrand )
 
-    if args.ZeroSum == 1:
+    if ZeroSum == 1:
         Cq = 1-Cp.t()
 
     K = Cp.size(0)
@@ -43,7 +32,7 @@ def run( args, G = None, Gp = None, Gq = None, mix = False):
 
     if args.lr > 0:
         eta = args.lr
-    elif optimistic and not bandits:
+    elif optimistic and not args.bandits:
         eta = (log(K)/T)**0.25
     else: 
         eta = (log(K)/T)**0.5
@@ -55,19 +44,23 @@ def run( args, G = None, Gp = None, Gq = None, mix = False):
 
     torch.set_printoptions(precision=4, threshold=200, edgeitems=2, linewidth=180, profile=None)
 
-    p = player(K = K, eta = eta, optimistic = optimistic, bandits = bandits )
-    q = player(K = K, eta = eta, optimistic = optimistic, bandits = bandits )
+    if args.swap:
+        p = metaplayer(K = K, eta = eta, optimistic = optimistic, bandits = args.bandits )
+        q = metaplayer(K = K, eta = eta, optimistic = optimistic, bandits = args.bandits )
+    else:
+        p = player(K = K, eta = eta, optimistic = optimistic, bandits = args.bandits )
+        q = player(K = K, eta = eta, optimistic = optimistic, bandits = args.bandits )
 
     Vavg = 0
     ptavg = th.zeros(K,1)
     qtavg = th.zeros(K,1)
     Vf = th.zeros(K,1)
-    QL = q.L.clone()
+    QL = th.zeros(K,1) 
     CCE = th.zeros(K,K)
     stint = 5
 
     for tt in range(1,T+1):
-        if bandits:
+        if args.bandits:
             eta = (log(K)/(K*tt))**0.5
         pt = p.play(eta)
         qt = q.play(eta)
@@ -83,18 +76,18 @@ def run( args, G = None, Gp = None, Gq = None, mix = False):
 
         if tt == T:
             break
-        if policy == 1:
+        if args.policy == 1:
             for k in range(K):
                 pk = onehot(k,K)
                 Vf[k] += th.mm( Cp, q.policyplay( th.mm(Cq, pk) ) )[k]
         if log(tt) >  stint:
             if mix and min(ptavg) < 0.01:
                 return False
-            stint += 0.2
+            stint += 0.1
             print("Round:",tt)
             Pa = min(Vf)/tt
             Rs = min(th.mm(Cp, qtavg))
-            if policy == 1:
+            if args.policy == 1:
                 Pp, a = solve(QL =QL, e = q.eta, K = K, Cq = Cq, Cp = Cp, 
                                o = q.optmstc, l = Pa, itermin = args.itermin )
                 print( "Policy Regret a*:", mylog( Vavg - Pa ) )
@@ -104,23 +97,22 @@ def run( args, G = None, Gp = None, Gq = None, mix = False):
                 print( "d(pt,pavg):", kld( pt, ptavg ) )
                 print( "d(p*,pavg):", kld( a, ptavg ) )
             else:
-                print("Regret:", mylog( Vavg - Rs) )
+                print("External Regret:", mylog( Vavg - Rs) )
             reglog.write( str(tt) + " " + str(float(Vavg - Rs)) + "\n")
             print( "pavg:", ptavg.t() )
             print( "qavg:", qtavg.t() )
             print( "  pt:", p.pt.t() )
             print( "  qt:", q.pt.t() )
-            print( "pt last:", p.last.t() )
-            print( "qt last:", q.last.t() )
             print( "LlossAvg:", th.mm( Cp, qtavg).t() )
             print( "QlossAvg:", th.mm( Cq, ptavg).t() )
-            print( "p.L:", p.L.t() )
-            print( "q.L:", q.L.t() )
-            if args.ZeroSum != 1:
+            if not args.swap:
+                print( "p.L:", p.L.t() )
+                print( "q.L:", q.L.t() )
+            if ZeroSum != 1:
                 print( "CCE:\n", CCE ) 
             print( "="*50 ) 
 
-        if policy:
+        if args.policy:
             QL = th.cat( ( QL, q.L.clone() ), dim = 1 )
     return True
 
@@ -136,15 +128,17 @@ def MixedFinding(args):
         continue
 
 parser = argparse.ArgumentParser(description='Set variant algos')
-parser.add_argument('--opt', type=int, default=1, dest = 'optimistic')
 parser.add_argument('--n', type=int, default=0, dest='nrand')
 parser.add_argument('--lr', type=float, default=0.5, dest='lr')
 parser.add_argument('--t', type=int, default=100000, dest='T')
-parser.add_argument('--z', type=int, default=1, dest='ZeroSum')
 parser.add_argument('--iter', type=int, default=1000, dest='itermin')
-parser.add_argument('--p', type=int, default=0, dest='policy')
-parser.add_argument('--b', type=int, default=0, dest='bandits')
+parser.add_argument('--p', action='store_true', default=False, dest='policy')
+parser.add_argument('--b', action='store_true', default=False, dest='bandits')
+parser.add_argument('--nopt', action='store_true', default=False, dest='nopt')
+parser.add_argument('--nonz', action='store_true', default=False, dest='nonz')
+parser.add_argument('--swap', action='store_true', default=False, dest='swap')
 parser.add_argument('--seed', type=int, default=-1, dest='seed')
+
 args = parser.parse_args()
 
 run(args)
