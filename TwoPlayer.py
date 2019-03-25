@@ -57,6 +57,9 @@ def run( args, G = None, Gp = None, Gq = None, mix = False):
     Vf = th.zeros(K,1)
     QL = th.zeros(K,1) 
     CCE = th.zeros(K,K)
+    LF = th.zeros(K,K)
+    BR = 0
+    BA = 0
     stint = 5
 
     for tt in range(1,T+1):
@@ -73,6 +76,8 @@ def run( args, G = None, Gp = None, Gq = None, mix = False):
         ptavg = (ptavg/tt)*(tt-1) + pt/tt
         qtavg = (qtavg/tt)*(tt-1) + qt/tt
         CCE = (CCE/tt)*(tt-1) + th.mm(pt,qt.t())/tt
+        LF = (LF/tt)*(tt-1) + th.mm( pt, th.mm(Cp, qt).t() ) / tt
+        BR = (BR/tt)*(tt-1) + th.min( th.mm(Cp, qt) )/tt
 
         if tt == T:
             break
@@ -97,8 +102,9 @@ def run( args, G = None, Gp = None, Gq = None, mix = False):
                 print( "d(pt,pavg):", kld( pt, ptavg ) )
                 print( "d(p*,pavg):", kld( a, ptavg ) )
             else:
-                print("External Regret:", mylog( Vavg - Rs) )
-            reglog.write( str(tt) + " " + str(float(Vavg - Rs)) + "\n")
+                print( "External Regret:", mylog( Vavg - Rs) )
+                print( "    Swap Regret:", mylog( Vavg - sum(th.min( LF, dim = 1 )[0]) ) )
+                print( " Dynamic Regret:", mylog( Vavg - BR ) ) 
             print( "pavg:", ptavg.t() )
             print( "qavg:", qtavg.t() )
             print( "  pt:", p.pt.t() )
@@ -111,6 +117,7 @@ def run( args, G = None, Gp = None, Gq = None, mix = False):
             if ZeroSum != 1:
                 print( "CCE:\n", CCE ) 
             print( "="*50 ) 
+            reglog.write( str(tt) + " " + str(float(Vavg - Rs)) + "\n")
 
         if args.policy:
             QL = th.cat( ( QL, q.L.clone() ), dim = 1 )
