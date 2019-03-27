@@ -16,20 +16,19 @@ class metaplayer:
             p = player( K = K, eta = eta, optimistic = optimistic, bandits = bandits )
             self.plyrs.append( p )
         self.pt = None
+
     def play( self, eta = -1 ):
         for i in range(self.K):
             pi = self.plyrs[i].play( eta )
             if i == 0:
-                self.Q = pi 
+                Q = pi 
             else:
-                self.Q = th.cat( (self.Q, pi), dim = 1 )
-        if self.pt is None:
-            self.pt = th.ones( self.K, 1 ) / self.K
-        while True:
-            old = self.pt
-            self.pt = th.mm( self.Q, self.pt )
-            if th.norm( self.pt-old ) < 1e-7:
-                return self.pt
+                Q = th.cat( (Q, pi), dim = 1 )
+        P = Q - th.eye(self.K)
+        P[0] = th.ones(self.K)
+        self.pt = th.inverse(P)[:,0].view(self.K,1)
+        return self.pt
+
     def loss( self, lossvec ):
         for i in range(self.K):
             self.plyrs[i].loss( self.pt[i] * lossvec )
