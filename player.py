@@ -11,7 +11,11 @@ class metaplayer:
         self.eta = eta
         self.bandits = bandits
         self.K = K
-        self.plyrs = [ player(K = K, eta = eta, optimistic = optimistic, bandits = bandits ) ] * K
+        self.plyrs = []
+        for i in range(K):
+            p = player( K = K, eta = eta, optimistic = optimistic, bandits = bandits )
+            self.plyrs.append( p )
+        self.pt = None
     def play( self, eta = -1 ):
         for i in range(self.K):
             pi = self.plyrs[i].play( eta )
@@ -19,10 +23,13 @@ class metaplayer:
                 self.Q = pi 
             else:
                 self.Q = th.cat( (self.Q, pi), dim = 1 )
-        self.pt = th.ones( self.K, 1 ) / self.K
-        for i in range( 100 ):
+        if self.pt is None:
+            self.pt = th.ones( self.K, 1 ) / self.K
+        while True:
+            old = self.pt
             self.pt = th.mm( self.Q, self.pt )
-        return self.pt
+            if th.norm( self.pt-old ) < 1e-7:
+                return self.pt
     def loss( self, lossvec ):
         for i in range(self.K):
             self.plyrs[i].loss( self.pt[i] * lossvec )
