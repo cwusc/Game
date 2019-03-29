@@ -42,7 +42,7 @@ def run( args, G = None, Gp = None, Gq = None, mix = False):
     print("q Loss:\n", Cq)
     print("="*50)
 
-    torch.set_printoptions(precision=4, threshold=200, edgeitems=2, linewidth=180, profile=None)
+    th.set_printoptions(precision=4, threshold=200, edgeitems=2, linewidth=180, profile=None)
 
     if args.swap:
         p = metaplayer(K = K, eta = eta, optimistic = optimistic, bandits = args.bandits )
