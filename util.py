@@ -1,6 +1,8 @@
 from math import log
 import torch as th
 from random import random
+from random import randint
+from os import system
 
 def sample( p ):
     x = random()
@@ -26,6 +28,8 @@ def kld(p, q):
 
 def l2d(p, q):
     return float(th.norm(p-q))
+def l1d(p, q):
+    return float(th.norm(p-q,p=1))
 
 def mylog(x):
     if x < 0:

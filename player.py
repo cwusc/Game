@@ -42,8 +42,10 @@ class player:
         self.optmstc = optimistic
         self.bandits = bandits
         self.K = K
+        self.t = 0
 
     def play( self, eta = -1 ):
+        self.t += 1
         if eta >= 0:
             self.eta = eta
         if self.optmstc:
