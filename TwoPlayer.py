@@ -39,7 +39,7 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, stint = 5, nash = No
         eta = args.lr
     elif optimistic and not args.bandits:
         eta = (log(K)/T)**0.25
-        lrf = lambda t: (log(K)/t)**(1/2)
+        lrf = lambda t: (log(K)/t)**(1/3)
     else: 
         eta = (log(K)/T)**0.5
         lrf = lambda t: (log(K)/t)**0.5
