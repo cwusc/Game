@@ -73,3 +73,4 @@ class player:
             lossvec = lte * onehot( self.a, self.K )
         self.L += lossvec
         self.last = lossvec
+        #self.last = self.L / self.t

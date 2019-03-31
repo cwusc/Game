@@ -39,7 +39,7 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, stint = 5, nash = No
         eta = args.lr
     elif optimistic and not args.bandits:
         eta = (log(K)/T)**0.25
-        lrf = lambda t: (log(K)/t)**0.25
+        lrf = lambda t: (log(K)/t)**(1/2)
     else: 
         eta = (log(K)/T)**0.5
         lrf = lambda t: (log(K)/t)**0.5
@@ -118,14 +118,14 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, stint = 5, nash = No
             print( "LlossAvg:", th.mm( Cp, qtavg).t() )
             print( "QlossAvg:", th.mm( Cq, ptavg).t() )
             if nash is not None:
-                print( "d(pt,nash):", kld( pt, nash ) )
+                print( "d(pt,ptavg):", kld( pt, ptavg ) )
             if not args.swap:
                 print( "p.L:", p.L.t() )
                 print( "q.L:", q.L.t() )
             if ZeroSum != 1:
                 print( "CCE:\n", CCE ) 
             print( "="*50 ) 
-            reglog.write( str(tt) + " " + str(float( l1d( pt, nash ))) + "\n")
+            reglog.write( str(tt) + " " + str(float( kld( pt, ptavg ))) + "\n")
 
         if args.policy:
             QL = th.cat( ( QL, q.L.clone() ), dim = 1 )
