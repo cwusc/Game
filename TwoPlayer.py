@@ -19,6 +19,12 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, stint = 5, nash = No
         [0.3091, 0.3913, 0.0825, 0.4189],
         [0.4109, 0.8477, 0.9726, 0.0640],
         [0.3729, 0.3603, 0.8482, 0.1642]])
+        Cp = th.tensor([[0.8834, 0.8203, 0.7005, 0.2619, 0.0813, 0.8391],
+        [0.5094, 0.2321, 0.3998, 0.8524, 0.5568, 0.5760],
+        [0.9702, 0.3329, 0.0596, 0.3267, 0.9607, 0.3390],
+        [0.4925, 0.8460, 0.3689, 0.5945, 0.0179, 0.6663],
+        [0.4970, 0.0857, 0.9805, 0.5765, 0.0523, 0.8657],
+        [0.6016, 0.5110, 0.8438, 0.3019, 0.5767, 0.1738]])
     elif G is not None:
         Cp = G
     elif Gp is not None:
@@ -67,12 +73,15 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, stint = 5, nash = No
     LF = th.zeros(K,K)
     BR = 0
     BA = 0
+    PL = 0
 
     for tt in range(1,T+1):
         if args.dylr:
             eta = lrf( tt )
         pt = p.play(eta)
         qt = q.play(eta)
+
+        PL += l2d(th.mm(Cp, qt), p.last)**2
 
         q.loss( th.mm(Cq, pt) )
         p.loss( th.mm(Cp, qt) )
@@ -85,14 +94,15 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, stint = 5, nash = No
         LF = (LF/tt)*(tt-1) + th.mm( pt, th.mm(Cp, qt).t() ) / tt
         BR = (BR/tt)*(tt-1) + th.min( th.mm(Cp, qt) )/tt
 
+
         if tt == T:
             break
         if args.policy == 1:
             for k in range(K):
                 pk = onehot(k,K)
                 Vf[k] += th.mm( Cp, q.policyplay( th.mm(Cq, pk) ) )[k]
-        if tt > stint*100 : #log(tt) >  stint:
-            if mix and min(ptavg) < 0.01:
+        if tt > stint*1000 : #log(tt) >  stint:
+            if mix and l1d( pt, ptavg ) < K * 5e-3:#min(ptavg) < 0.01:
                 return False
             stint += 1
             print("Round:",tt)
@@ -118,7 +128,9 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, stint = 5, nash = No
             print( "LlossAvg:", th.mm( Cp, qtavg).t() )
             print( "QlossAvg:", th.mm( Cq, ptavg).t() )
             if nash is not None:
-                print( "d(pt,ptavg):", kld( pt, ptavg ) )
+                print( "   d(pt,nash):", kld( pt, ptavg ) )
+                #print( "d(ptavg,nash):", kld( ptavg, nash ) )
+                print( "lr:", eta )
             if not args.swap:
                 print( "p.L:", p.L.t() )
                 print( "q.L:", q.L.t() )
@@ -130,7 +142,7 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, stint = 5, nash = No
         if args.policy:
             QL = th.cat( ( QL, q.L.clone() ), dim = 1 )
     if log(tt) <  stint:
-        return ptavg
+        return ptavg, Cp
     else:
         return True
 
@@ -142,16 +154,18 @@ def LRtuning(args):
         print(run(args, G=G), 2.0**i)
 
 def MixedFinding(args):
-    while not run(args, mix = True):
+    while not run(args, mix = True, nash = True):
         continue
 
 def LastIterConv(args):
-    T = args.T
-    args.T = 1000000
-    nash = run(args, stint = 999999)
-    print("Nash:", nash.t())
-    args.T = T
-    run(args, nash = nash)
+    for i in range(10):
+        args.seed = randint(1,10000)
+        T = args.T
+        args.T = 200000
+        nash, G = run(args, stint = 99999999)
+        print("Nash:", nash.t())
+        args.T = T
+        run(args, nash = nash, G = G)
 
 
 parser = argparse.ArgumentParser(description='Set variant algos')
@@ -171,3 +185,5 @@ parser.add_argument('--seed', type=int, default=-1, dest='seed')
 args = parser.parse_args()
 
 run(args, nash = th.tensor([[6.3684e-01, 4.1275e-06, 1.3450e-07, 3.6316e-01]]).t(), stint = 1)
+#LastIterConv(args)
+#MixedFinding(args)
