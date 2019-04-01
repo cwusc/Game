@@ -19,12 +19,6 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, stint = 5, nash = No
         [0.3091, 0.3913, 0.0825, 0.4189],
         [0.4109, 0.8477, 0.9726, 0.0640],
         [0.3729, 0.3603, 0.8482, 0.1642]])
-        Cp = th.tensor([[0.8834, 0.8203, 0.7005, 0.2619, 0.0813, 0.8391],
-        [0.5094, 0.2321, 0.3998, 0.8524, 0.5568, 0.5760],
-        [0.9702, 0.3329, 0.0596, 0.3267, 0.9607, 0.3390],
-        [0.4925, 0.8460, 0.3689, 0.5945, 0.0179, 0.6663],
-        [0.4970, 0.0857, 0.9805, 0.5765, 0.0523, 0.8657],
-        [0.6016, 0.5110, 0.8438, 0.3019, 0.5767, 0.1738]])
     elif G is not None:
         Cp = G
     elif Gp is not None:
@@ -36,7 +30,7 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, stint = 5, nash = No
         Cq = th.rand( nrand, nrand )
 
     if ZeroSum == 1:
-        Cq = 1-Cp.t()
+        Cq = 1-Cp.t() if args.bandits else -Cp.t()
 
     K = Cp.size(0)
     T = args.T
@@ -45,7 +39,7 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, stint = 5, nash = No
         eta = args.lr
     elif optimistic and not args.bandits:
         eta = (log(K)/T)**0.25
-        lrf = lambda t: (log(K)/t)**(1/3)
+        lrf = lambda t: (log(K)/t)**(3/4)
     else: 
         eta = (log(K)/T)**0.5
         lrf = lambda t: (log(K)/t)**0.5
@@ -73,7 +67,8 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, stint = 5, nash = No
     LF = th.zeros(K,K)
     BR = 0
     BA = 0
-    PL = 0
+    WPL = 0
+    VL = 0 
 
     for tt in range(1,T+1):
         if args.dylr:
@@ -81,7 +76,7 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, stint = 5, nash = No
         pt = p.play(eta)
         qt = q.play(eta)
 
-        PL += l2d(th.mm(Cp, qt), p.last)**2
+        WPL += ( l1d(th.mm(Cp, qt), p.last)**2 ) / eta
 
         q.loss( th.mm(Cq, pt) )
         p.loss( th.mm(Cp, qt) )
@@ -93,6 +88,7 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, stint = 5, nash = No
         CCE = (CCE/tt)*(tt-1) + th.mm(pt,qt.t())/tt
         LF = (LF/tt)*(tt-1) + th.mm( pt, th.mm(Cp, qt).t() ) / tt
         BR = (BR/tt)*(tt-1) + th.min( th.mm(Cp, qt) )/tt
+        VL += l1d( pt, ptavg )**2 
 
 
         if tt == T:
@@ -101,7 +97,7 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, stint = 5, nash = No
             for k in range(K):
                 pk = onehot(k,K)
                 Vf[k] += th.mm( Cp, q.policyplay( th.mm(Cq, pk) ) )[k]
-        if tt > stint*1000 : #log(tt) >  stint:
+        if tt > stint*100 : #log(tt) >  stint:
             if mix and l1d( pt, ptavg ) < K * 5e-3:#min(ptavg) < 0.01:
                 return False
             stint += 1
@@ -128,8 +124,12 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, stint = 5, nash = No
             print( "LlossAvg:", th.mm( Cp, qtavg).t() )
             print( "QlossAvg:", th.mm( Cq, ptavg).t() )
             if nash is not None:
-                print( "   d(pt,nash):", kld( pt, ptavg ) )
-                #print( "d(ptavg,nash):", kld( ptavg, nash ) )
+                print( "   d(pt,nash):", mylog( l1d(pt,nash)) )
+                print( "d(ptavg,nash):", mylog( l1d( ptavg, nash )) )
+                print( "   R_T + R'_T:", mylog( max(-th.mm(Cq, ptavg))-min(th.mm(Cp, qtavg))) )
+                print( "   Var length:", mylog( VL/tt ) )
+                print( "  Path Length:", mylog( WPL/tt ) )
+
                 print( "lr:", eta )
             if not args.swap:
                 print( "p.L:", p.L.t() )
