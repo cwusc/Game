@@ -139,13 +139,13 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, nash = None ):
                 print( "   R_T + R'_T:", mylog( max(-th.mm(Cq, ptavg))-min(th.mm(Cp, qtavg))) )
                 print( "   Var length:", mylog( VL/tt ) )
                 print( "lr:", eta )
+                reglog.write( str(tt)+" "+str( float( kld( nash[0], pt )+kld( nash[1], qt ))) + "\n")
             if not args.swap:
                 print( "p.L:", p.L.t() )
                 print( "q.L:", q.L.t() )
             if ZeroSum != 1:
                 print( "CCE:\n", CCE ) 
             print( "="*50 ) 
-            reglog.write( str(tt)+" "+str( float( kld( nash[0], pt )+kld( nash[1], qt ))) + "\n")
 
         if args.policy:
             QL = th.cat( ( QL, q.L.clone() ), dim = 1 )
@@ -201,8 +201,8 @@ parser.add_argument('--step', type=int, default=1000, dest='step')
 
 args = parser.parse_args()
 
-run(args, nash = (th.tensor([[0.2627, 0.3057, 0.0549, 0.3767]]).t(),
-    th.tensor([[0.1628, 0.4482, 0.1682, 0.2207]]).t() ))
+run(args, nash = (th.tensor([[0.3955, 0.0383, 0.3397, 0.0618, 0.1648]]).t(),
+    th.tensor([[0.2640, 0.2333, 0.2327, 0.2049, 0.0651]]).t() ))
 #LastIterConv(args)
 #run( args )
 #MixedFinding(args)
