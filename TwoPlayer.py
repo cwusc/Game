@@ -2,10 +2,12 @@ import argparse
 from player import *
 from model import *
 
-def run( args, G = None, Gp = None, Gq = None, mix = False, stint = 5, nash = None ):
+def run( args, G = None, Gp = None, Gq = None, mix = False, nash = None ):
     optimistic = not (args.nopt)
     ZeroSum = not (args.nonz)
     nrand = args.nrand
+    stint = args.stint
+    step = args.step
     th.set_default_tensor_type(th.DoubleTensor)
     reglog = open("reglog.txt", "w+")
     if nrand <= 0:
@@ -101,7 +103,7 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, stint = 5, nash = No
             for k in range(K):
                 pk = onehot(k,K)
                 Vf[k] += th.mm( Cp, q.policyplay( th.mm(Cq, pk) ) )[k]
-        if tt > stint*10 : #log(tt) >  stint:
+        if tt > stint*step : #log(tt) >  stint:
             if mix and min(ptavg) < 0.01:
                 return False
             stint += 1
@@ -131,6 +133,7 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, stint = 5, nash = No
                 #print( "   d(pt,nash):", mylog( l1d(pt,nash)) )
                 #print( "   d(nash,pt):", mylog( kld( nash, pt ) ) )
                 print( "  d(ptavg,pt):", mylog( kld( nash[0], pt )+kld( nash[1], qt )) )
+                #print( "  d(ptavg,pt):", mylog( kld( pt, ptavg )+kld( qt, ptavg )) )
                 print( "  Path Length:", mylog( WPL/tt ) )
                 print( "      Eta Sum:", mylog( ES ) )
                 print( "   R_T + R'_T:", mylog( max(-th.mm(Cq, ptavg))-min(th.mm(Cp, qtavg))) )
@@ -166,7 +169,7 @@ def MixedFinding(args):
     while True:
         i = randint(1,1000000)
         args.seed = i
-        if run(args, mix = True, stint = 1):
+        if run(args, mix = True):
             break
     print("seed:",i)
 def LastIterConv(args):
@@ -192,12 +195,14 @@ parser.add_argument('--nonz', action='store_true', default=False, dest='nonz')
 parser.add_argument('--swap', action='store_true', default=False, dest='swap')
 parser.add_argument('--dylr', action='store_true', default=False, dest='dylr')
 parser.add_argument('--seed', type=int, default=-1, dest='seed')
+parser.add_argument('--stint', type=int, default=5, dest='stint')
+parser.add_argument('--step', type=int, default=1000, dest='step')
 
 
 args = parser.parse_args()
 
-run(args, nash = (th.tensor([[0.3236, 0.1098, 0.5666]]).t(), 
-        th.tensor([[0.1385, 0.3141, 0.5474]]).t() ), stint = 1)
+run(args, nash = (th.tensor([[0.2627, 0.3057, 0.0549, 0.3767]]).t(),
+    th.tensor([[0.1628, 0.4482, 0.1682, 0.2207]]).t() ))
 #LastIterConv(args)
 #run( args )
 #MixedFinding(args)
