@@ -26,10 +26,10 @@ def kld(p, q):
         kl += pi * log( pi/qi )
     return float(kl)
 
-def l2d(p, q):
-    return float(th.norm(p-q))
-def l1d(p, q):
-    return float(th.norm(p-q,p=1))
+def l2d(x, y):
+    return float(th.norm(x-y))
+def l1d(x, y):
+    return float(th.norm(x-y,p=1))
 
 def mylog(x):
     if x < 0:

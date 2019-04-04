@@ -6,6 +6,30 @@ from util import *
 
 th.set_default_tensor_type(th.DoubleTensor)
 
+class hohplayer:
+    def __init__( self, eta = 1, K = 1, optimistic = False, bandits = False):
+        self.eta = eta
+        self.bandits = bandits
+        self.K = K
+        self.plyrs = []
+        self.meta = player ( K = K, eta = eta, optimistic = optimistic, bandits = bandits )
+        self.pt = th.ones(self.K, 1) / self.K
+        for i in range(K):
+            p = player( K = K, eta = eta, optimistic = optimistic, bandits = bandits )
+            self.plyrs.append( p )
+        
+    def play( self, eta = -1 ):
+        Q = self.plyrs[0].play( eta )
+        for i in range(1,self.K):
+            pi = self.plyrs[i].play( eta )
+            Q = th.cat( (Q, pi), dim = 1 )
+        for i in range(1):
+            self.pt = th.mm( Q, self.pt )
+        return self.pt
+    def loss( self, lossvec ):
+        for i in range(self.K):
+            self.plyrs[i].loss( self.pt[i] * lossvec )
+
 class metaplayer:
     def __init__( self, eta = 1, K = 1, optimistic = False, bandits = False):
         self.eta = eta

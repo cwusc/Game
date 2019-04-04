@@ -39,7 +39,7 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, stint = 5, nash = No
         eta = args.lr
     elif optimistic and not args.bandits:
         eta = (log(K)/T)**0.25
-        lrf = lambda t: (log(K)/t)**(3/4)
+        lrf = lambda t: (log(K)/(t))**(2/3)
     else: 
         eta = (log(K)/T)**0.5
         lrf = lambda t: (log(K)/t)**0.5
@@ -52,8 +52,8 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, stint = 5, nash = No
     th.set_printoptions(precision=4, threshold=200, edgeitems=2, linewidth=180, profile=None)
 
     if args.swap:
-        p = metaplayer(K = K, eta = eta, optimistic = optimistic, bandits = args.bandits )
-        q = metaplayer(K = K, eta = eta, optimistic = optimistic, bandits = args.bandits )
+        p = hohplayer(K = K, eta = eta, optimistic = optimistic, bandits = args.bandits )
+        q = hohplayer(K = K, eta = eta, optimistic = optimistic, bandits = args.bandits )
     else:
         p = player(K = K, eta = eta, optimistic = optimistic, bandits = args.bandits )
         q = player(K = K, eta = eta, optimistic = optimistic, bandits = args.bandits )
@@ -69,14 +69,17 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, stint = 5, nash = No
     BA = 0
     WPL = 0
     VL = 0 
+    ES = 0
 
     for tt in range(1,T+1):
         if args.dylr:
             eta = lrf( tt )
+        if tt > 1:
+            WPL += ( l1d(p.play(eta), pt)  )  * tt
+        
         pt = p.play(eta)
         qt = q.play(eta)
 
-        WPL += ( l1d(th.mm(Cp, qt), p.last)**2 ) / eta
 
         q.loss( th.mm(Cq, pt) )
         p.loss( th.mm(Cp, qt) )
@@ -89,6 +92,7 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, stint = 5, nash = No
         LF = (LF/tt)*(tt-1) + th.mm( pt, th.mm(Cp, qt).t() ) / tt
         BR = (BR/tt)*(tt-1) + th.min( th.mm(Cp, qt) )/tt
         VL += l1d( pt, ptavg )**2 
+        ES += eta
 
 
         if tt == T:
@@ -97,8 +101,8 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, stint = 5, nash = No
             for k in range(K):
                 pk = onehot(k,K)
                 Vf[k] += th.mm( Cp, q.policyplay( th.mm(Cq, pk) ) )[k]
-        if tt > stint*100 : #log(tt) >  stint:
-            if mix and l1d( pt, ptavg ) < K * 5e-3:#min(ptavg) < 0.01:
+        if tt > stint*10 : #log(tt) >  stint:
+            if mix and min(ptavg) < 0.01:
                 return False
             stint += 1
             print("Round:",tt)
@@ -111,7 +115,7 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, stint = 5, nash = No
                 print( "Policy Regret p*:", mylog( Vavg - Pp ) )
                 print( " External Regret:", mylog( Vavg - Rs ) )
                 print( "  p*:", a.t() )
-                print( "d(pt,pavg):", kld( pt, ptavg ) )
+                print( "d(pt,pavg):", kld( ptavg, pt ) )
                 print( "d(p*,pavg):", kld( a, ptavg ) )
             else:
                 print( "External Regret:", mylog( Vavg - Rs) )
@@ -124,12 +128,13 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, stint = 5, nash = No
             print( "LlossAvg:", th.mm( Cp, qtavg).t() )
             print( "QlossAvg:", th.mm( Cq, ptavg).t() )
             if nash is not None:
-                print( "   d(pt,nash):", mylog( l1d(pt,nash)) )
-                print( "d(ptavg,nash):", mylog( l1d( ptavg, nash )) )
+                #print( "   d(pt,nash):", mylog( l1d(pt,nash)) )
+                #print( "   d(nash,pt):", mylog( kld( nash, pt ) ) )
+                print( "  d(ptavg,pt):", mylog( kld( nash[0], pt )+kld( nash[1], qt )) )
+                print( "  Path Length:", mylog( WPL/tt ) )
+                print( "      Eta Sum:", mylog( ES ) )
                 print( "   R_T + R'_T:", mylog( max(-th.mm(Cq, ptavg))-min(th.mm(Cp, qtavg))) )
                 print( "   Var length:", mylog( VL/tt ) )
-                print( "  Path Length:", mylog( WPL/tt ) )
-
                 print( "lr:", eta )
             if not args.swap:
                 print( "p.L:", p.L.t() )
@@ -137,10 +142,14 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, stint = 5, nash = No
             if ZeroSum != 1:
                 print( "CCE:\n", CCE ) 
             print( "="*50 ) 
-            reglog.write( str(tt) + " " + str(float( kld( pt, ptavg ))) + "\n")
+            reglog.write( str(tt)+" "+str( float( kld( nash[0], pt )+kld( nash[1], qt ))) + "\n")
 
         if args.policy:
             QL = th.cat( ( QL, q.L.clone() ), dim = 1 )
+    print("="*50)
+    print("p Loss:\n", Cp)
+    print("q Loss:\n", Cq)
+    print("="*50)
     if log(tt) <  stint:
         return ptavg, Cp
     else:
@@ -154,14 +163,17 @@ def LRtuning(args):
         print(run(args, G=G), 2.0**i)
 
 def MixedFinding(args):
-    while not run(args, mix = True, nash = True):
-        continue
-
+    while True:
+        i = randint(1,1000000)
+        args.seed = i
+        if run(args, mix = True, stint = 1):
+            break
+    print("seed:",i)
 def LastIterConv(args):
     for i in range(10):
         args.seed = randint(1,10000)
         T = args.T
-        args.T = 200000
+        args.T = 1000000
         nash, G = run(args, stint = 99999999)
         print("Nash:", nash.t())
         args.T = T
@@ -184,6 +196,8 @@ parser.add_argument('--seed', type=int, default=-1, dest='seed')
 
 args = parser.parse_args()
 
-run(args, nash = th.tensor([[6.3684e-01, 4.1275e-06, 1.3450e-07, 3.6316e-01]]).t(), stint = 1)
+run(args, nash = (th.tensor([[0.3236, 0.1098, 0.5666]]).t(), 
+        th.tensor([[0.1385, 0.3141, 0.5474]]).t() ), stint = 1)
 #LastIterConv(args)
+#run( args )
 #MixedFinding(args)
