@@ -19,16 +19,18 @@ class hohplayer:
             self.plyrs.append( p )
         
     def play( self, eta = -1 ):
-        Q = self.plyrs[0].play( eta )
+        self.Q = self.plyrs[0].play( eta )
         for i in range(1,self.K):
             pi = self.plyrs[i].play( eta )
-            Q = th.cat( (Q, pi), dim = 1 )
+            self.Q = th.cat( (self.Q, pi), dim = 1 )
         for i in range(1):
-            self.pt = th.mm( Q, self.pt )
+            self.pt = self.meta.play( eta )
+            #self.pt = th.mm( self.Q, self.pt ) 
         return self.pt
     def loss( self, lossvec ):
         for i in range(self.K):
             self.plyrs[i].loss( self.pt[i] * lossvec )
+        self.meta.loss( th.mm( self.Q, lossvec) )
 
 class metaplayer:
     def __init__( self, eta = 1, K = 1, optimistic = False, bandits = False):
