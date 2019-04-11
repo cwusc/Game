@@ -29,3 +29,10 @@ Cp = th.tensor([[0.8863, 0.1772, 0.9386],
 Cq = th.tensor([[0.4271, 0.8174, 0.5112],
 [0.7327, 0.7630, 0.4404],
 [0.4437, 0.3071, 0.5904]])
+
+
+#Paper Toss
+Cp = th.tensor([[0.0,1,-1],[-1,0,1],[1,-1,0]], requires_grad=False)
+# Stop and Go
+Cp = th.tensor([[0.5,0.5],[0.51,0]], requires_grad=False) #Stop & Go
+Cq = th.tensor([[0.5,0.51],[0.5,0]], requires_grad=False) #Stop & Go

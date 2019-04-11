@@ -1,5 +1,7 @@
 from math import log
 import torch as th
+from torch import nn
+from torch.distributions.categorical import Categorical
 from random import random
 from random import randint
 from os import system

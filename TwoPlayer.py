@@ -1,4 +1,4 @@
-import argparse
+from argpar import *
 from player import *
 from model import *
 
@@ -11,11 +11,6 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, nash = None ):
     th.set_default_tensor_type(th.DoubleTensor)
     reglog = open("reglog.txt", "w+")
     if nrand <= 0:
-        # Paper Toss
-        #Cp = th.tensor([[0.0,1,-1],[-1,0,1],[1,-1,0]], requires_grad=False)
-        # Stop and Go
-        #Cp = th.tensor([[0.5,0.5],[0.51,0]], requires_grad=False) #Stop & Go
-        #Cq = th.tensor([[0.5,0.51],[0.5,0]], requires_grad=False) #Stop & Go
         #Spin in last iterate convergence
         Cp = th.tensor([[0.1699, 0.3604, 0.0821, 0.2964],
         [0.3091, 0.3913, 0.0825, 0.4189],
@@ -54,8 +49,8 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, nash = None ):
     th.set_printoptions(precision=4, threshold=200, edgeitems=2, linewidth=180, profile=None)
 
     if args.swap:
-        p = hohplayer(K = K, eta = eta, optimistic = optimistic, bandits = args.bandits )
-        q = hohplayer(K = K, eta = eta, optimistic = optimistic, bandits = args.bandits )
+        p = metaplayer(K = K, eta = eta, optimistic = optimistic, bandits = args.bandits )
+        q = metaplayer(K = K, eta = eta, optimistic = optimistic, bandits = args.bandits )
     else:
         p = player(K = K, eta = eta, optimistic = optimistic, bandits = args.bandits )
         q = player(K = K, eta = eta, optimistic = optimistic, bandits = args.bandits )
@@ -96,7 +91,6 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, nash = None ):
         VL += l1d( pt, ptavg )**2 
         ES += eta
 
-
         if tt == T:
             break
         if args.policy == 1:
@@ -132,7 +126,7 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, nash = None ):
             if nash is not None:
                 #print( "   d(pt,nash):", mylog( l1d(pt,nash)) )
                 #print( "   d(nash,pt):", mylog( kld( nash, pt ) ) )
-                print( "  d(ptavg,pt):", mylog( kld( nash[0], pt )+kld( nash[1], qt )) )
+                print( "  d(ptavg,pt):", mylog( kld( ptavg, pt )+kld( qtavg, qt )) )
                 #print( "  d(ptavg,pt):", mylog( kld( pt, ptavg )+kld( qt, ptavg )) )
                 print( "  Path Length:", mylog( WPL/tt ) )
                 print( "      Eta Sum:", mylog( ES ) )
@@ -182,25 +176,7 @@ def LastIterConv(args):
         args.T = T
         run(args, nash = nash, G = G)
 
-
-parser = argparse.ArgumentParser(description='Set variant algos')
-parser.add_argument('--n', type=int, default=0, dest='nrand')
-parser.add_argument('--lr', type=float, default=-1, dest='lr')
-parser.add_argument('--t', type=int, default=100000, dest='T')
-parser.add_argument('--iter', type=int, default=1000, dest='itermin')
-parser.add_argument('--p', action='store_true', default=False, dest='policy')
-parser.add_argument('--b', action='store_true', default=False, dest='bandits')
-parser.add_argument('--nopt', action='store_true', default=False, dest='nopt')
-parser.add_argument('--nonz', action='store_true', default=False, dest='nonz')
-parser.add_argument('--swap', action='store_true', default=False, dest='swap')
-parser.add_argument('--dylr', action='store_true', default=False, dest='dylr')
-parser.add_argument('--seed', type=int, default=-1, dest='seed')
-parser.add_argument('--stint', type=int, default=5, dest='stint')
-parser.add_argument('--step', type=int, default=1000, dest='step')
-
-
-args = parser.parse_args()
-
+args =  getargs()
 run(args, nash = (th.tensor([[0.3955, 0.0383, 0.3397, 0.0618, 0.1648]]).t(),
     th.tensor([[0.2640, 0.2333, 0.2327, 0.2049, 0.0651]]).t() ))
 #LastIterConv(args)

@@ -1,36 +1,7 @@
-import torch as th
-from torch import nn
-from torch.distributions.categorical import Categorical
-from math import log
 from util import *
 
 th.set_default_tensor_type(th.DoubleTensor)
 
-class hohplayer:
-    def __init__( self, eta = 1, K = 1, optimistic = False, bandits = False):
-        self.eta = eta
-        self.bandits = bandits
-        self.K = K
-        self.plyrs = []
-        self.meta = player ( K = K, eta = eta, optimistic = optimistic, bandits = bandits )
-        self.pt = th.ones(self.K, 1) / self.K
-        for i in range(K):
-            p = player( K = K, eta = eta, optimistic = optimistic, bandits = bandits )
-            self.plyrs.append( p )
-        
-    def play( self, eta = -1 ):
-        self.Q = self.plyrs[0].play( eta )
-        for i in range(1,self.K):
-            pi = self.plyrs[i].play( eta )
-            self.Q = th.cat( (self.Q, pi), dim = 1 )
-        for i in range(1):
-            self.pt = self.meta.play( eta )
-            #self.pt = th.mm( self.Q, self.pt ) 
-        return self.pt
-    def loss( self, lossvec ):
-        for i in range(self.K):
-            self.plyrs[i].loss( self.pt[i] * lossvec )
-        self.meta.loss( th.mm( self.Q, lossvec) )
 
 class metaplayer:
     def __init__( self, eta = 1, K = 1, optimistic = False, bandits = False):
@@ -44,15 +15,12 @@ class metaplayer:
         self.pt = None
 
     def play( self, eta = -1 ):
-        for i in range(self.K):
-            pi = self.plyrs[i].play( eta )
-            if i == 0:
-                Q = pi 
-            else:
-                Q = th.cat( (Q, pi), dim = 1 )
+        Q = self.plyrs[0].play( eta )
+        for i in range(1,self.K):
+            Q = th.cat( (Q, self.plyrs[i].play( eta ) ), dim = 1 )
         P = Q - th.eye(self.K)
         P[0] = th.ones(self.K)
-        self.pt = th.inverse(P)[:,0].view(self.K,1)
+        self.pt = th.inverse(P)[:,0:1]
         return self.pt
 
     def loss( self, lossvec ):
@@ -79,9 +47,9 @@ class player:
         else:
             L = self.L
         self.pt = nn.Softmax(dim = 0)( -self.eta * ( L ) )
-        self.a = sample( self.pt )
         if not self.bandits: 
             return self.pt 
+        self.a = sample( self.pt )
         return onehot( self.a, self.K )
 
     def policyplay( self, La, eta = -1 ):
