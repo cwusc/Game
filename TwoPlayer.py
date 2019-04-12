@@ -32,14 +32,17 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, nash = None ):
     K = Cp.size(0)
     T = args.T
 
+    if optimistic and not args.bandits:
+        lrf = lambda t: (log(K)/(t))**(1/4)
+    elif args.swap:
+        lrf = lambda t: (K*log(K)/t)**0.5
+    else: 
+        lrf = lambda t: (log(K)/t)**0.5
+
     if args.lr > 0:
         eta = args.lr
-    elif optimistic and not args.bandits:
-        eta = (log(K)/T)**0.25
-        lrf = lambda t: (log(K)/(t))**(2/3)
-    else: 
-        eta = (log(K)/T)**0.5
-        lrf = lambda t: (log(K)/t)**0.5
+    else:
+        eta = lrf(T)
 
     print("="*50)
     print("p Loss:\n", Cp)
@@ -124,16 +127,12 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, nash = None ):
             print( "LlossAvg:", th.mm( Cp, qtavg).t() )
             print( "QlossAvg:", th.mm( Cq, ptavg).t() )
             if nash is not None:
-                #print( "   d(pt,nash):", mylog( l1d(pt,nash)) )
-                #print( "   d(nash,pt):", mylog( kld( nash, pt ) ) )
-                print( "  d(ptavg,pt):", mylog( kld( ptavg, pt )+kld( qtavg, qt )) )
-                #print( "  d(ptavg,pt):", mylog( kld( pt, ptavg )+kld( qt, ptavg )) )
                 print( "  Path Length:", mylog( WPL/tt ) )
                 print( "      Eta Sum:", mylog( ES ) )
                 print( "   R_T + R'_T:", mylog( max(-th.mm(Cq, ptavg))-min(th.mm(Cp, qtavg))) )
                 print( "   Var length:", mylog( VL/tt ) )
                 print( "lr:", eta )
-                reglog.write( str(tt)+" "+str( float( kld( nash[0], pt )+kld( nash[1], qt ))) + "\n")
+                #reglog.write( str(tt)+" "+str( float( kld( nash[0], pt )+kld( nash[1], qt ))) + "\n")
             if not args.swap:
                 print( "p.L:", p.L.t() )
                 print( "q.L:", q.L.t() )
