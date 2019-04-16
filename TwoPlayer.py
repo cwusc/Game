@@ -16,6 +16,10 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, nash = None ):
         [0.3091, 0.3913, 0.0825, 0.4189],
         [0.4109, 0.8477, 0.9726, 0.0640],
         [0.3729, 0.3603, 0.8482, 0.1642]])
+        Cp = th. tensor([
+        [0.7745, 0.1880, 0.8293],
+        [0.4754, 0.9853, 0.1900],
+        [0.4255, 0.5795, 0.9747]])
     elif G is not None:
         Cp = G
     elif Gp is not None:
@@ -128,11 +132,13 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, nash = None ):
             print( "QlossAvg:", th.mm( Cq, ptavg).t() )
             if nash is not None:
                 print( "  Path Length:", mylog( WPL/tt ) )
+                print( "  d(pt, ptavg)", mylog( l1d(pt,ptavg) ) )
+                print( "d(pt qt, nash)", mylog( kld(nash[0],pt)+kld(nash[1],qt) ) )
                 print( "      Eta Sum:", mylog( ES ) )
                 print( "   R_T + R'_T:", mylog( max(-th.mm(Cq, ptavg))-min(th.mm(Cp, qtavg))) )
                 print( "   Var length:", mylog( VL/tt ) )
                 print( "lr:", eta )
-                #reglog.write( str(tt)+" "+str( float( kld( nash[0], pt )+kld( nash[1], qt ))) + "\n")
+                reglog.write( str(tt)+" "+str( float( kld( nash[0], pt )+kld( nash[1], qt ))) + "\n")
             if not args.swap:
                 print( "p.L:", p.L.t() )
                 print( "q.L:", q.L.t() )
@@ -176,8 +182,8 @@ def LastIterConv(args):
         run(args, nash = nash, G = G)
 
 args =  getargs()
-run(args, nash = (th.tensor([[0.3955, 0.0383, 0.3397, 0.0618, 0.1648]]).t(),
-    th.tensor([[0.2640, 0.2333, 0.2327, 0.2049, 0.0651]]).t() ))
+run(args, nash = (th.tensor([[4.0808e-01, 4.1629e-01, 1.7562e-01]]).t(),
+    th.tensor([[4.6118e-01, 3.3579e-01, 2.0303e-01]]).t() ))
 #LastIterConv(args)
 #run( args )
 #MixedFinding(args)

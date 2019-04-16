@@ -36,3 +36,8 @@ Cp = th.tensor([[0.0,1,-1],[-1,0,1],[1,-1,0]], requires_grad=False)
 # Stop and Go
 Cp = th.tensor([[0.5,0.5],[0.51,0]], requires_grad=False) #Stop & Go
 Cq = th.tensor([[0.5,0.51],[0.5,0]], requires_grad=False) #Stop & Go
+
+# --n 4 --seed 8888
+popt = tensor([[3.0715e-06, 4.0808e-01, 4.1629e-01, 1.7562e-01]])
+qopt = tensor([[4.6118e-01, 3.3579e-01, 1.8431e-06, 2.0303e-01]])
+nash = (popt, qopt)
