@@ -12,6 +12,7 @@ def getargs():
     parser.add_argument('--nonz', action='store_true', default=False, dest='nonz')
     parser.add_argument('--swap', action='store_true', default=False, dest='swap')
     parser.add_argument('--dylr', action='store_true', default=False, dest='dylr')
+    parser.add_argument('--mixf',  action='store_true', default=False, dest='mixf')
     parser.add_argument('--seed', type=int, default=-1, dest='seed')
     parser.add_argument('--stint', type=int, default=5, dest='stint')
     parser.add_argument('--step', type=int, default=1000, dest='step')

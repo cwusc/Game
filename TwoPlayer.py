@@ -3,14 +3,14 @@ from player import *
 from model import *
 from nash import *
 
-def run( args, G = None, Gp = None, Gq = None, mix = False, nash = None ):
+def run( args, G = None, Gp = None, Gq = None, mix = False, nash = None, logf = "reglog.txt" ):
     optimistic = not (args.nopt)
     ZeroSum = not (args.nonz)
     nrand = args.nrand
     stint = args.stint
     step = args.step
     th.set_default_tensor_type(th.DoubleTensor)
-    reglog = open("reglog.txt", "w+")
+    reglog = open( logf, "w+")
     if nrand <= 0:
         #Spin in last iterate convergence
         Cp = th.tensor([[0.1699, 0.3604, 0.0821, 0.2964],
@@ -57,7 +57,7 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, nash = None ):
     print("q Loss:\n", Cq)
     print("="*50)
 
-    th.set_printoptions(precision=8, threshold=200, edgeitems=2, linewidth=180, profile=None)
+    th.set_printoptions(precision=4, threshold=200, edgeitems=2, linewidth=180, profile=None)
 
     if args.swap:
         p = metaplayer(K = K, eta = eta, optimistic = optimistic, bandits = args.bandits )
@@ -109,7 +109,7 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, nash = None ):
                 pk = onehot(k,K)
                 Vf[k] += th.mm( Cp, q.policyplay( th.mm(Cq, pk) ) )[k]
         if tt > stint*step : #log(tt) >  stint:
-            if mix and min(ptavg) < 0.01:
+            if mix and min(ptavg)+min(qtavg) < 0.01:
                 return False
             stint += 1
             print("Round:",tt)
@@ -186,7 +186,9 @@ def LastIterConv(args):
         run(args, nash = nash, G = G)
 
 args =  getargs()
-run(args)
+
 #LastIterConv(args)
-#run( args )
-#MixedFinding(args)
+if args.mixf:
+    MixedFinding(args)
+else:
+    run( args )
