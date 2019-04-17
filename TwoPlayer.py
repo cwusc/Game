@@ -1,6 +1,7 @@
 from argpar import *
 from player import *
 from model import *
+from nash import *
 
 def run( args, G = None, Gp = None, Gq = None, mix = False, nash = None ):
     optimistic = not (args.nopt)
@@ -48,12 +49,15 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, nash = None ):
     else:
         eta = lrf(T)
 
+    if (K,args.seed) in nashdic:
+        nash = nashdic[ (K,args.seed) ]
+
     print("="*50)
     print("p Loss:\n", Cp)
     print("q Loss:\n", Cq)
     print("="*50)
 
-    th.set_printoptions(precision=4, threshold=200, edgeitems=2, linewidth=180, profile=None)
+    th.set_printoptions(precision=8, threshold=200, edgeitems=2, linewidth=180, profile=None)
 
     if args.swap:
         p = metaplayer(K = K, eta = eta, optimistic = optimistic, bandits = args.bandits )
@@ -133,12 +137,12 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, nash = None ):
             if nash is not None:
                 print( "  Path Length:", mylog( WPL/tt ) )
                 print( "  d(pt, ptavg)", mylog( l1d(pt,ptavg) ) )
-                print( "d(pt qt, nash)", mylog( kld(nash[0],pt)+kld(nash[1],qt) ) )
+                print( "d(nash, pt qt)", mylog( kld(nash[0],pt)+kld(nash[1],qt) ) )
                 print( "      Eta Sum:", mylog( ES ) )
                 print( "   R_T + R'_T:", mylog( max(-th.mm(Cq, ptavg))-min(th.mm(Cp, qtavg))) )
                 print( "   Var length:", mylog( VL/tt ) )
                 print( "lr:", eta )
-                reglog.write( str(tt)+" "+str( float( kld( nash[0], pt )+kld( nash[1], qt ))) + "\n")
+                reglog.write( str(tt)+" "+str( float( kld( nash[0], pt )+ kld( nash[1], qt ))) + "\n")
             if not args.swap:
                 print( "p.L:", p.L.t() )
                 print( "q.L:", q.L.t() )
@@ -182,8 +186,7 @@ def LastIterConv(args):
         run(args, nash = nash, G = G)
 
 args =  getargs()
-run(args, nash = (th.tensor([[4.0808e-01, 4.1629e-01, 1.7562e-01]]).t(),
-    th.tensor([[4.6118e-01, 3.3579e-01, 2.0303e-01]]).t() ))
+run(args)
 #LastIterConv(args)
 #run( args )
 #MixedFinding(args)
