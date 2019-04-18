@@ -16,6 +16,7 @@ class game:
         else:
             if seed > 0:
                 th.manual_seed( seed )
+                th.set_printoptions(precision=8, threshold=200, edgeitems=2, linewidth=180, profile=None)
             self.Cp = th.rand( nrand, nrand )
             self.Cq = th.rand( nrand, nrand )
 
@@ -54,7 +55,7 @@ class game:
         print( "pavg:", self.avg['pt'].t() )
         print( "qavg:", self.avg['qt'].t() )
         print( "  pt:", self.now['pt'].t() )
-        print( "  qt:", self.now['pt'].t()  )
+        print( "  qt:", self.now['qt'].t()  )
         print( "LlossAvg:", th.mm( self.Cp, self.avg['qt']).t() )
         print( "QlossAvg:", th.mm( self.Cq, self.avg['pt']).t() )
         if self.nash is not None:

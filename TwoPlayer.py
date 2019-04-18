@@ -19,8 +19,6 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, nash = None ):
         lrf = lambda t: (log(K)/t)**0.5
     eta = args.lr if args.lr > 0 else lrf(T)
 
-    th.set_printoptions(precision=4, threshold=200, edgeitems=2, linewidth=180, profile=None)
-
     if args.swap:
         p = metaplayer(K = K, eta = eta, optimistic = optimistic, bandits = args.bandits )
         q = metaplayer(K = K, eta = eta, optimistic = optimistic, bandits = args.bandits )
@@ -66,7 +64,7 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, nash = None ):
 def MixedFinding(args):
     c = 0
     while True:
-        i = randint(1,99999999)
+        i = randint(1,9999999)
         args.seed = i
         if run(args, mix = True):
             break
