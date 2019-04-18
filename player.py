@@ -2,7 +2,6 @@ from util import *
 
 th.set_default_tensor_type(th.DoubleTensor)
 
-
 class metaplayer:
     def __init__( self, eta = 1, K = 1, optimistic = False, bandits = False):
         self.eta = eta
@@ -38,11 +37,13 @@ class player:
         self.K = K
         self.t = 0
 
-    def play( self, eta = -1 ):
+    def play( self, eta = -1, opt = None):
         self.t += 1
         if eta >= 0:
             self.eta = eta
-        if self.optmstc:
+        if opt == None:
+            opt = self.optmstc
+        if opt:
             L = self.L + self.last
         else:
             L = self.L

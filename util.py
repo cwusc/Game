@@ -5,6 +5,7 @@ from torch.distributions.categorical import Categorical
 from random import random
 from random import randint
 from os import system
+th.set_default_tensor_type(th.DoubleTensor)
 
 def sample( p ):
     x = random()
