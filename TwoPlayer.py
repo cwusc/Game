@@ -65,7 +65,7 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, nash = None ):
 def MixedFinding(args):
     c = 0
     while True:
-        i = randint(1,9999999)
+        i = randint(1,99999999)
         args.seed = i
         if run(args, mix = True):
             break
