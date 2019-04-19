@@ -5,6 +5,7 @@ from game import *
 
 def run( args, G = None, Gp = None, Gq = None, mix = False, nash = None ):
     optimistic = not (args.nopt)
+    stint = args.stint
     g = game( args.nrand, G, Gp, Gq, args.seed, bool(args.bandits), not(args.nonz), not(mix))
     K = g.Cp.size(0)
     T = args.T
@@ -50,9 +51,9 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, nash = None ):
             for k in range(K):
                 pk = onehot(k,K)
                 Vf[k] += th.mm( g.Cp, q.policyplay( th.mm( g.Cq, pk) ) )[k]
-        if tt > args.stint * args.step : #log(tt) >  stint:
-            args.stint += 1
-            if mix and ( min( pt ) < .01 or min( qt ) < .01 ):
+        if tt > stint * args.step : #log(tt) >  stint:
+            stint += 1
+            if mix and ( min( pt ) < .01  or min( qt ) < .01 ):
                 return False
             if not mix:
                 g.log(tt)
