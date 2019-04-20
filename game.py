@@ -26,7 +26,8 @@ class game:
         self.K = self.Cp.size(0)
         self.avg = {}
         self.sum = {}
-        for i in [ 'V', 'pt', 'qt', 'CCE', 'LF', 'BR' ]:
+        self.now = {}
+        for i in [ 'V', 'pt', 'qt', 'CCE', 'LF', 'BR', 'ptp', 'qtp' ]:
             self.avg[ i ] = 0
         for i in[ 'VL', 'ES' ]:
             self.sum[ i] = 0
@@ -36,16 +37,20 @@ class game:
         else:
             self.nash = None
         self.f = open("reglog.txt","w+") if logf else False
+        self.klsum = 0
 
     def avgupdate(self, t, **kwargs):
         for i in kwargs:
             self.avg[ i ] = self.avg[ i ] / t * (t-1) + kwargs[ i ] / t
+        self.las = self.now
         self.now = kwargs 
+        if t > 1:
+            self.klsum += kld( self.now['ptp'], self.las['ptp'] ) + \
+                     kld( self.now['qtp'], self.las['qtp'] ) 
     def sumupdate(self, **kwargs):
         for i in kwargs:
             self.sum[ i ] +=  kwargs[ i ]
-    
-    def log(self, tt):
+    def log(self, tt, p, q):
         Rfix = min( th.mm( self.Cp, self.avg[ 'qt'] ) )
         Rswp = sum( th.min( self.avg[ 'LF' ], dim = 1 )[0] ) 
         print("Round:",tt)
@@ -59,11 +64,25 @@ class game:
         print( "LlossAvg:", th.mm( self.Cp, self.avg['qt']).t() )
         print( "QlossAvg:", th.mm( self.Cq, self.avg['pt']).t() )
         if self.nash is not None:
-            d = kld(self.nash[0], self.now['pt'] ) + kld(self.nash[1], self.now['qt'] )
-            print( "  d(pt, ptavg)", mylog( kld( self.now['pt'], self.avg['pt']) ) )
-            print( "d(nash, pt qt)", mylog( d ) )
+            dot = kld(self.nash[0], self.now['pt'] ) + kld(self.nash[1], self.now['qt'] )
+            dof = kld(self.nash[0], self.now['ptp'] ) + kld(self.nash[1], self.now['qtp'] )
+            dol = kld(self.nash[0], self.las['ptp'] ) + kld(self.nash[1], self.las['qtp'] )
+            dpn = kld(self.las['ptp'], self.now['ptp'] ) + kld(self.las['qtp'], self.now['qtp'] )
+            dnp = kld(self.now['ptp'], self.las['ptp'] ) + kld(self.now['qtp'], self.las['qtp'] )
+            vtf = p.eta*(self.now['ptp']-self.nash[0]).t().mm( self.Cp ).mm( self.las['qt'] ) +  \
+                  q.eta*(self.now['qtp']-self.nash[1]).t().mm( self.Cq ).mm( self.las['pt'] )
+            print( "   d(pt, ptavg)", mylog( kld( self.now['pt'], self.avg['pt']) ) )
+            print( " d(nash, pt qt)", dot  )
+            print( " kld(x't,x't-1)", self.klsum  )
+            print( " d(nash,pt'qt')", mylog( dof ) )
+            print( "(*,t-1')-(*,t')", mylog( dol-dof ) )
+            print( "          ratio", ( (dol-dof) / dol ) )
+            print( " d( xt-1', xt')", mylog( dpn ) )
+            print( " d( xt', xt-1')", mylog( dnp ) )
+            print( " (p'-p*)^TGqt-1", mylog( vtf ) )
+            print( "        Theorem", mylog( dol-dof-dnp-vtf ) )
             if self.f:
-                self.f.write( str(tt) + " " + str(float( d )) + "\n")
+                self.f.write( "{} {:.8E} {:.8E} {:.8E} {:.8E}\n".format(tt, dol-dof, self.klsum, dof, dnp ) )
         print( "="*50 ) 
     
     def  __repr__( self ):

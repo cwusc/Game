@@ -35,13 +35,15 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, nash = None ):
             eta = lrf( tt )
         pt = p.play(eta)
         qt = q.play(eta)
+        ptp = p.play(eta, opt = False)
+        qtp = q.play(eta, opt = False)
         q.loss( th.mm( g.Cq, pt) )
         p.loss( th.mm(g.Cp, qt) )
 
         if not mix:
             g.avgupdate( tt, V = th.mm( pt.t(), th.mm(g.Cp, qt) ) , 
                     pt = pt, qt = qt, CCE = th.mm(pt,qt.t()), 
-                    LF = th.mm( pt, th.mm(g.Cp, qt).t() ), 
+                    LF = th.mm(pt, th.mm(g.Cp, qt).t()), ptp = ptp, qtp = qtp,
                     BR = th.min( th.mm(g.Cp, qt) ) )
             g.sumupdate( VL = l1d( pt, g.avg['pt'] )**2, ES = eta )
 
@@ -56,7 +58,7 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, nash = None ):
             if mix and ( min( pt ) < .01  or min( qt ) < .01 ):
                 return False
             if not mix:
-                g.log(tt)
+                g.log(tt,p,q)
 
         if args.policy:
             QL = th.cat( ( QL, q.L.clone() ), dim = 1 )
