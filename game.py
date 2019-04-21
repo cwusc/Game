@@ -16,7 +16,7 @@ class game:
         else:
             if seed > 0:
                 th.manual_seed( seed )
-                th.set_printoptions(precision=8, threshold=200, edgeitems=2, linewidth=180, profile=None)
+                th.set_printoptions(precision=6, threshold=200, edgeitems=2, linewidth=180, profile=None)
             self.Cp = th.rand( nrand, nrand )
             self.Cq = th.rand( nrand, nrand )
 
@@ -73,12 +73,11 @@ class game:
                   q.eta*(self.now['qtp']-self.nash[1]).t().mm( self.Cq ).mm( self.las['pt'] )
             print( "   d(pt, ptavg)", mylog( kld( self.now['pt'], self.avg['pt']) ) )
             print( " d(nash, pt qt)", dot  )
-            print( " kld(x't,x't-1)", self.klsum  )
             print( " d(nash,pt'qt')", mylog( dof ) )
+            print( "sumd(x't,x't-1)", self.klsum  )
+            print( " d( xt', xt-1')", mylog( dnp ) )
             print( "(*,t-1')-(*,t')", mylog( dol-dof ) )
             print( "          ratio", ( (dol-dof) / dol ) )
-            print( " d( xt-1', xt')", mylog( dpn ) )
-            print( " d( xt', xt-1')", mylog( dnp ) )
             print( " (p'-p*)^TGqt-1", mylog( vtf ) )
             print( "        Theorem", mylog( dol-dof-dnp-vtf ) )
             if self.f:

@@ -55,7 +55,7 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, nash = None ):
                 Vf[k] += th.mm( g.Cp, q.policyplay( th.mm( g.Cq, pk) ) )[k]
         if tt > stint * args.step : #log(tt) >  stint:
             stint += 1
-            if mix and ( min( pt ) < .01  or min( qt ) < .01 ):
+            if mix and ( min( pt ) < 1e-6  or min( qt ) < 1e-6 ):
                 return False
             if not mix:
                 g.log(tt,p,q)
@@ -64,14 +64,15 @@ def run( args, G = None, Gp = None, Gq = None, mix = False, nash = None ):
             QL = th.cat( ( QL, q.L.clone() ), dim = 1 )
     print(g)
     return True
-def MixedFinding(args):
-    c = 0
-    while True:
-        i = randint(1,99999999)
+def MixedFinding(args, rnd = False):
+    for c in range(1,99999999):
+        if rnd:
+            i = randint(1,99999999)
+        else:
+            i = c
         args.seed = i
         if run(args, mix = True):
             break
-        c += 1
         if c % 100 == 0:
             print(c,"games tried")
     print("seed:",i)
