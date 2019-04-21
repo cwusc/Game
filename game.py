@@ -69,19 +69,20 @@ class game:
             dol = kld(self.nash[0], self.las['ptp'] ) + kld(self.nash[1], self.las['qtp'] )
             dpn = kld(self.las['ptp'], self.now['ptp'] ) + kld(self.las['qtp'], self.now['qtp'] )
             dnp = kld(self.now['ptp'], self.las['ptp'] ) + kld(self.now['qtp'], self.las['qtp'] )
-            vtf = p.eta*(self.now['ptp']-self.nash[0]).t().mm( self.Cp ).mm( self.las['qt'] ) +  \
-                  q.eta*(self.now['qtp']-self.nash[1]).t().mm( self.Cq ).mm( self.las['pt'] )
+            nom = p.eta*(self.now['ptp']).t().mm( self.Cp ).mm( self.las['qt'] ) + dnp + \
+                  q.eta*(self.now['qtp']).t().mm( self.Cq ).mm( self.las['pt'] )
+            den = p.eta*(self.nash[0]).t().mm( self.Cp ).mm( self.las['qt'] ) + dol + \
+                  q.eta*(self.nash[1]).t().mm( self.Cq ).mm( self.las['pt'] )
+            ratio = float( nom / den)
             print( "   d(pt, ptavg)", mylog( kld( self.now['pt'], self.avg['pt']) ) )
             print( " d(nash, pt qt)", dot  )
             print( " d(nash,pt'qt')", mylog( dof ) )
             print( "sumd(x't,x't-1)", self.klsum  )
             print( " d( xt', xt-1')", mylog( dnp ) )
             print( "(*,t-1')-(*,t')", mylog( dol-dof ) )
-            print( "          ratio", ( (dol-dof) / dol ) )
-            print( " (p'-p*)^TGqt-1", mylog( vtf ) )
-            print( "        Theorem", mylog( dol-dof-dnp-vtf ) )
+            print( "          ratio", ratio )
             if self.f:
-                self.f.write( "{} {:.8E} {:.8E} {:.8E} {:.8E}\n".format(tt, dol-dof, self.klsum, dof, dnp ) )
+                self.f.write( "{} {:.8E} {:.8E} {:.8E} {:.8E}\n".format(tt, dol-dof, ratio, dof, dnp ) )
         print( "="*50 ) 
     
     def  __repr__( self ):
