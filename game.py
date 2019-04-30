@@ -34,12 +34,11 @@ class game:
 
         if (self.K, seed) in nashdic:
             self.nash = nashdic[ (self.K, seed) ]
-            unif = th.ones(self.K,1) / self.K
-            self.tuni = kld( self.nash[0], unif ) + kld( self.nash[1], unif ) 
         else:
             self.nash = None
         self.f = open("reglog.txt","w+") if logf else False
         self.klsum = 0
+        self.inqsum = 0
 
     def avgupdate(self, t, **kwargs):
         for i in kwargs:
@@ -49,10 +48,15 @@ class game:
         if t > 1:
             self.klsum += kld( self.now['ptp'], self.las['ptp'] ) + \
                      kld( self.now['qtp'], self.las['qtp'] ) 
+            self.inqsum += (self.now['ptp']-self.nash[0]).t().mm( self.Cp ).mm( self.las['qt'] ) + \
+                           (self.now['qtp']-self.nash[1]).t().mm( self.Cq ).mm( self.las['pt'] )
+        else:
+            self.tuni = kld( self.nash[0], self.now['ptp'] ) + kld( self.nash[1], self.now['qtp'] ) 
     def sumupdate(self, **kwargs):
         for i in kwargs:
             self.sum[ i ] +=  kwargs[ i ]
     def log(self, tt, p, q):
+        #Don't Sum In this Function!
         Rfix = min( th.mm( self.Cp, self.avg[ 'qt'] ) )
         Rswp = sum( th.min( self.avg[ 'LF' ], dim = 1 )[0] ) 
         print("Round:",tt)
@@ -78,15 +82,17 @@ class game:
             rem = p.eta*(self.now['ptp']-self.nash[0]).t().mm( self.Cp ).mm( self.las['qt'] ) + \
                   q.eta*(self.now['qtp']-self.nash[1]).t().mm( self.Cq ).mm( self.las['pt'] )
             ratio = float( nom / den)
+            ine = dol - dof - rem - kld( self.now['ptp'], self.las['ptp'] ) + \
+                                    kld( self.now['qtp'], self.las['qtp'] )
             print( "   d(pt, ptavg)", float( kld( self.now['pt'], self.avg['pt']) ) )
             print( " d(nash, pt qt)", dot  )
             print( " d(nash,pt'qt')", float( dof ) )
             print( "d(*,x0)-d(*,xt)", float( self.tuni - dof ) )
             print( "sumd(x't,x't-1)", self.klsum  )
+            print( "sum<pt'-p*,t-1>", float(self.inqsum*p.eta) )
             print( " d( xt', xt-1')", float( dnp ) )
             print( "(*,t-1')-(*,t')", float( dol-dof ) )
-            print( "          ratio", ratio )
-            print( "sum<pt'-p*,t-1>", float(rem) )
+            print( "     inequality", float(ine) )
             if self.f:
                 self.f.write( "{} {:.8E} {:.8E} {:.8E} {:.8E}\n".format(tt, dol-dof, ratio, dof, dnp ) )
         print( "="*50 ) 
