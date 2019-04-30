@@ -34,6 +34,8 @@ class game:
 
         if (self.K, seed) in nashdic:
             self.nash = nashdic[ (self.K, seed) ]
+            unif = th.ones(self.K,1) / self.K
+            self.tuni = kld( self.nash[0], unif ) + kld( self.nash[1], unif ) 
         else:
             self.nash = None
         self.f = open("reglog.txt","w+") if logf else False
@@ -73,14 +75,18 @@ class game:
                   q.eta*(self.now['qtp']).t().mm( self.Cq ).mm( self.las['pt'] )
             den = p.eta*(self.nash[0]).t().mm( self.Cp ).mm( self.las['qt'] ) + dol + \
                   q.eta*(self.nash[1]).t().mm( self.Cq ).mm( self.las['pt'] )
+            rem = p.eta*(self.now['ptp']-self.nash[0]).t().mm( self.Cp ).mm( self.las['qt'] ) + \
+                  q.eta*(self.now['qtp']-self.nash[1]).t().mm( self.Cq ).mm( self.las['pt'] )
             ratio = float( nom / den)
-            print( "   d(pt, ptavg)", mylog( kld( self.now['pt'], self.avg['pt']) ) )
+            print( "   d(pt, ptavg)", float( kld( self.now['pt'], self.avg['pt']) ) )
             print( " d(nash, pt qt)", dot  )
-            print( " d(nash,pt'qt')", mylog( dof ) )
+            print( " d(nash,pt'qt')", float( dof ) )
+            print( "d(*,x0)-d(*,xt)", float( self.tuni - dof ) )
             print( "sumd(x't,x't-1)", self.klsum  )
-            print( " d( xt', xt-1')", mylog( dnp ) )
-            print( "(*,t-1')-(*,t')", mylog( dol-dof ) )
+            print( " d( xt', xt-1')", float( dnp ) )
+            print( "(*,t-1')-(*,t')", float( dol-dof ) )
             print( "          ratio", ratio )
+            print( "sum<pt'-p*,t-1>", float(rem) )
             if self.f:
                 self.f.write( "{} {:.8E} {:.8E} {:.8E} {:.8E}\n".format(tt, dol-dof, ratio, dof, dnp ) )
         print( "="*50 ) 
