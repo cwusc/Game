@@ -81,7 +81,7 @@ class game:
                   q.eta*(self.nash[1]).t().mm( self.Cq ).mm( self.las['pt'] )
             rem = p.eta*(self.now['ptp']-self.nash[0]).t().mm( self.Cp ).mm( self.las['qt'] ) + \
                   q.eta*(self.now['qtp']-self.nash[1]).t().mm( self.Cq ).mm( self.las['pt'] )
-            ratio = float( nom / den)
+            ratio = float( dol / dof )
             ine = dol - dof - rem - kld( self.now['ptp'], self.las['ptp'] ) + \
                                     kld( self.now['qtp'], self.las['qtp'] )
             print( "   d(pt, ptavg)", float( kld( self.now['pt'], self.avg['pt']) ) )
@@ -93,8 +93,9 @@ class game:
             print( " d( xt', xt-1')", float( dnp ) )
             print( "(*,t-1')-(*,t')", float( dol-dof ) )
             print( "     inequality", float(ine) )
+            print( "          ratio", ratio )
             if self.f:
-                self.f.write( "{} {:.8E} {:.8E} {:.8E} {:.8E}\n".format(tt, dol-dof, ratio, dof, dnp ) )
+                self.f.write( "{} {:.8E} {:.8E} {:.8E}\n".format(tt, dol-dof, ratio, dof, dnp ) )
         print( "="*50 ) 
     
     def  __repr__( self ):
