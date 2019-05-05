@@ -39,6 +39,7 @@ class game:
         self.f = open("reglog.txt","w+") if logf else False
         self.klsum = 0
         self.inqsum = 0
+        self.eig = float( th.min(th.eig(self.Cp.mm(self.Cp.t()))[0][:,0]) )
 
     def avgupdate(self, t, **kwargs):
         for i in kwargs:
@@ -48,9 +49,10 @@ class game:
         if t > 1:
             self.klsum += kld( self.now['ptp'], self.las['ptp'] ) + \
                      kld( self.now['qtp'], self.las['qtp'] ) 
-            self.inqsum += (self.now['ptp']-self.nash[0]).t().mm( self.Cp ).mm( self.las['qt'] ) + \
-                           (self.now['qtp']-self.nash[1]).t().mm( self.Cq ).mm( self.las['pt'] )
-        else:
+            if self.nash:
+                self.inqsum += (self.now['ptp']-self.nash[0]).t().mm( self.Cp ).mm( self.las['qt'] ) + \
+                               (self.now['qtp']-self.nash[1]).t().mm( self.Cq ).mm( self.las['pt'] )
+        elif self.nash:
             self.tuni = kld( self.nash[0], self.now['ptp'] ) + kld( self.nash[1], self.now['qtp'] ) 
     def sumupdate(self, **kwargs):
         for i in kwargs:
@@ -100,4 +102,4 @@ class game:
     
     def  __repr__( self ):
         s = "="*50 + '\n' + "p Loss:\n" + str(self.Cp) 
-        return s + "\n q Loss:\n" + str(self.Cq) + "\n" + "="*50 
+        return s + "\n q Loss:\n" + str(self.Cq) + "\nMin sigma: " + str(self.eig) + "\n" + "="*50 
