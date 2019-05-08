@@ -21,6 +21,9 @@ def onehot(i, K):
     x[ i ] = 1.0
     return x 
 
+def H(p):
+    return th.log(p).t().mm(p)
+    
 def kld(p, q):
     kl = 0.0
     for pi,qi in zip(p,q):
